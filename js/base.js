@@ -41,7 +41,7 @@ function loadScript(src){return new Promise(function(res,rej){var s=document.cre
 function connect(alCambiar,cambioSesion){if(alCambiar)avisar=alCambiar;if(cambioSesion)alSesion=cambioSesion;
   var cfg=window.MC_FIREBASE,ready;
   if(cfg&&cfg.apiKey)ready=window.firebase&&window.firebase.firestore?Promise.resolve():loadScript(SDK+'app-compat.js').then(function(){return Promise.all([loadScript(SDK+'auth-compat.js'),loadScript(SDK+'firestore-compat.js')])});
-  else if(isLocal()){B.local=true;cfg={apiKey:'local'};ready=window.firebase&&window.firebase.local?Promise.resolve():loadScript('js/base-local.js?v=20261016-5')}
+  else if(isLocal()){B.local=true;cfg={apiKey:'local'};ready=window.firebase&&window.firebase.local?Promise.resolve():loadScript('js/base-local.js?v=20261016-6')}
   else return Promise.resolve();
   return ready.then(function(){return init(cfg)},function(){return null})}
 function init(cfg){

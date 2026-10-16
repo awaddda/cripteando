@@ -97,6 +97,7 @@ function sendClue(){var S=MC.S,d=readForm(),m=marked(d),ans=(d.ans||'').trim();
   var labels=d.mechs.map(function(k){return (MECHS.filter(function(x){return x[0]===k})[0]||[0,k])[1]});
   var item={text:d.text.trim(),answer:ans.toUpperCase(),mechs:d.mechs.slice(),mechLabel:labels.join(', '),seg:segments(d),exp:d.exp.trim(),hd:(d.hd||'').trim(),hi:(d.hi||'').trim(),hm:(d.hm||'').trim(),
     extra:d.extra.map(function(e){return String(e||'').trim()}).filter(Boolean),notes:(d.notes||'').trim(),pub:!!store.showName,t:Date.now(),sent:false};
+  if(JSON.stringify(item.extra).length>1200)return say('Las ayudas extra son muy largas: acortalas un poco.');
   var done=function(sent,msg,ok){item.sent=sent;store.subs.push({text:item.text,answer:item.answer,mechLabel:item.mechLabel,t:item.t,sent:sent});
     if(sent||ok){store.draft={}}save();S.smsg=msg;S.scls=(sent||ok)?'ok':'bad';MC.render()};
   if(MC.base.lista()){MC.base.enviarPista(item)
