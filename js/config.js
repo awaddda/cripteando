@@ -1,1 +1,1 @@
-window.MC_FIREBASE={apiKey:'AIzaSyCA-3OdQV15UArwRPXKyQKaKLxm2v5__q0',authDomain:'mini-criptico.firebaseapp.com',projectId:'mini-criptico',storageBucket:'mini-criptico.firebasestorage.app',messagingSenderId:'262327526625',appId:'1:262327526625:web:42da15ae6476cf6828c3a0'};
+window.MC_FIREBASE={apiKey:'AIzaSyDrOR0_RFS8wYgxrRjJqfS0gFhJbNRl9_g',authDomain:'cripteandoando.firebaseapp.com',projectId:'cripteandoando',storageBucket:'cripteandoando.firebasestorage.app',messagingSenderId:'936802067565',appId:'1:936802067565:web:4898c7fa78e4f54b714b64'};
