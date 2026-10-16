@@ -69,7 +69,7 @@ var loginReason=function(e){var c=e&&e.code||'';try{console.warn('Mate Críptico
   if(c==='name-taken')return 'Ese nombre de usuario ya está en uso. Probá con otro.';
   if(c==='name-taken-after')return 'Tu cuenta se creó, pero alguien tomó ese nombre de usuario justo antes. Elegí otro acá abajo, en Perfil.';
   if(c==='name-after')return 'Tu cuenta se creó, pero no pude guardar tu nombre de usuario. Escribilo de nuevo acá abajo, en Perfil.';
-  if(c==='auth/operation-not-allowed'||c==='auth/admin-restricted-operation')return 'Este método para entrar no está activado todavía.';
+  if(c==='auth/operation-not-allowed'||c==='auth/admin-restricted-operation')return 'Las cuentas con email y contraseña no están activadas todavía.';
   if(c==='permission-denied')return 'La base de datos no deja guardar esto. Revisá que las reglas de Firestore estén publicadas.';
   if(c==='auth/configuration-not-found')return 'El inicio de sesión no está activado en Firebase. Entrá a Authentication y tocá Comenzar.';
   if(c==='failed-precondition'||c==='not-found')return 'Todavía no está creada la base de datos de Firestore.';
