@@ -88,11 +88,11 @@ document.addEventListener('submit',function(e){e.preventDefault();var id=e.targe
     MC.base.entrarConEmail(le,lp).catch(function(err){say('a-out',MC.base.motivoSesion(err))})}
   else if(id==='f-signup'){var un=$('#u-name').value,ue=$('#u-email').value,up=$('#u-pass').value;
     if(!MC.base.nombreValido(un))return say('a-out',MC.base.motivoSesion({code:'name-invalid'}));if(!ue)return say('a-out','Escribí tu email.');if(up.length<6)return say('a-out',MC.base.motivoSesion({code:'auth/weak-password'}));
-    say('a-out','Creando tu cuenta…','ok');MC.base.crearCuenta(un,ue,up).then(function(){render()}).catch(function(err){say('a-out',MC.base.motivoSesion(err))})}
+    say('a-out','Creando tu cuenta…','ok');MC.base.crearCuenta(un,ue,up).then(function(){render()}).catch(function(err){var t=MC.base.motivoSesion(err);if(MC.base.lista()){S.am={id:'a-msg',t:t,cls:'bad'};render()}else say('a-out',t)})}
   else if(id==='f-forgot'){var fe=$('#f-email').value;if(!fe)return say('a-out','Escribí tu email.');
     var sent=function(){say('a-out','Listo: si hay una cuenta con ese email, te llega el enlace en unos minutos.','ok')};
     MC.base.recuperarClave(fe).then(sent).catch(function(err){if(err&&err.code==='auth/user-not-found')sent();else say('a-out',MC.base.motivoSesion(err))})}
-  else if(id==='f-acc'){var a=($('#a-alias').value||'').trim().slice(0,20);if(!a)return say('a-msg','Escribí un nombre.');
+  else if(id==='f-acc'){S.am=null;var a=($('#a-alias').value||'').trim().slice(0,20);if(!a)return say('a-msg','Escribí un nombre.');
     if(MC.base.lista()){if(!MC.base.nombreValido(a))return say('a-msg',MC.base.motivoSesion({code:'name-invalid'}));
       say('a-msg','Guardando…','ok');MC.base.cambiarNombre(a).then(function(){say('a-msg','Guardado.','ok')}).catch(function(err){say('a-msg',MC.base.motivoSesion(err))})}
     else{store.alias=a;save();say('a-msg','Guardado.','ok')}}});

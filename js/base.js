@@ -41,15 +41,15 @@ function loadScript(src){return new Promise(function(res,rej){var s=document.cre
 function connect(alCambiar,cambioSesion){if(alCambiar)avisar=alCambiar;if(cambioSesion)alSesion=cambioSesion;
   var cfg=window.MC_FIREBASE,ready;
   if(cfg&&cfg.apiKey)ready=window.firebase&&window.firebase.firestore?Promise.resolve():loadScript(SDK+'app-compat.js').then(function(){return Promise.all([loadScript(SDK+'auth-compat.js'),loadScript(SDK+'firestore-compat.js')])});
-  else if(isLocal()){B.local=true;cfg={apiKey:'local'};ready=window.firebase&&window.firebase.local?Promise.resolve():loadScript('js/base-local.js?v=20261016-4')}
+  else if(isLocal()){B.local=true;cfg={apiKey:'local'};ready=window.firebase&&window.firebase.local?Promise.resolve():loadScript('js/base-local.js?v=20261016-5')}
   else return Promise.resolve();
   return ready.then(function(){return init(cfg)},function(){return null})}
 function init(cfg){
   try{if(!firebase.apps.length)firebase.initializeApp(cfg);B.db=firebase.firestore();B.auth=firebase.auth();try{B.auth.languageCode='es'}catch(e){}}catch(e){B.db=null;B.auth=null;return Promise.resolve()}
   return new Promise(function(res){var first=true;
     B.auth.onAuthStateChanged(function(u){B.user=u||null;B.uid=u?u.uid:null;
-      if(u)syncIn().then(function(){publish(today());alSesion()});
-      if(first){first=false;res()}else alSesion()},function(){if(first){first=false;res()}})})}
+      if(u)syncIn().then(function(){publish(today());if(!B.creating)alSesion()});
+      if(first){first=false;res()}else if(!B.creating)alSesion()},function(){if(first){first=false;res()}})})}
 function login(){if(!B.auth)return Promise.reject({code:'no-config'});var p=new firebase.auth.GoogleAuthProvider();
   return B.auth.signInWithPopup(p).catch(function(e){var c=e&&e.code||'';
     if(c==='auth/popup-blocked'||c==='auth/operation-not-supported-in-this-environment'||c==='auth/cancelled-popup-request')return B.auth.signInWithRedirect(p);
@@ -57,16 +57,23 @@ function login(){if(!B.auth)return Promise.reject({code:'no-config'});var p=new 
 function wipeLocal(){store.hist={};store.prog={};store.learn={};store.votes={};store.subs=[];store.groups=[];store.draft={};store.uname='';store.photo='';store.pub=true;store.showName=true;
   store.alias='Jugador'+(100+Math.floor(Math.random()*900));for(var k in B.unsub){try{B.unsub[k]()}catch(e){}}B.unsub={};B.groups={};B.gmem={};MC.save()}
 function logout(){clearTimeout(upT);var go=B.uid?upload():Promise.resolve();return go.then(function(){return B.auth?B.auth.signOut():null}).then(wipeLocal)}
-var loginReason=function(e){var c=e&&e.code||'';
+var loginReason=function(e){var c=e&&e.code||'';try{console.warn('Mate Críptico, sesión:',c||e,e&&e.message||'')}catch(x){}
   if(c==='auth/popup-closed-by-user')return 'Cerraste la ventana antes de terminar. Probá de nuevo.';
   if(c==='auth/unauthorized-domain')return 'Este dominio todavía no está autorizado para iniciar sesión.';
-  if(c==='auth/network-request-failed')return 'No hay conexión. Probá de nuevo en un rato.';
+  if(c==='auth/network-request-failed'||c==='unavailable')return 'No hay conexión. Probá de nuevo en un rato.';
   if(c==='auth/invalid-credential'||c==='auth/wrong-password'||c==='auth/user-not-found'||c==='auth/invalid-login-credentials')return 'El email o la contraseña no coinciden.';
   if(c==='auth/email-already-in-use')return 'Ya hay una cuenta con ese email. Probá entrar.';
   if(c==='auth/weak-password')return 'La contraseña tiene que tener al menos 6 caracteres.';
   if(c==='auth/invalid-email'||c==='auth/missing-email')return 'Ese email no parece válido.';
   if(c==='auth/too-many-requests')return 'Hubo demasiados intentos. Esperá un rato y probá de nuevo.';
   if(c==='name-taken')return 'Ese nombre de usuario ya está en uso. Probá con otro.';
+  if(c==='name-taken-after')return 'Tu cuenta se creó, pero alguien tomó ese nombre de usuario justo antes. Elegí otro acá abajo, en Perfil.';
+  if(c==='name-after')return 'Tu cuenta se creó, pero no pude guardar tu nombre de usuario. Escribilo de nuevo acá abajo, en Perfil.';
+  if(c==='auth/operation-not-allowed'||c==='auth/admin-restricted-operation')return 'Este método para entrar no está activado todavía.';
+  if(c==='permission-denied')return 'La base de datos no deja guardar esto. Revisá que las reglas de Firestore estén publicadas.';
+  if(c==='auth/configuration-not-found')return 'El inicio de sesión no está activado en Firebase. Entrá a Authentication y tocá Comenzar.';
+  if(c==='failed-precondition'||c==='not-found')return 'Todavía no está creada la base de datos de Firestore.';
+  if(/api-key/.test(c))return 'La clave de Firebase no es válida. Revisá js/config.js.';
   if(c==='name-invalid')return 'El nombre de usuario tiene que tener de 3 a 20 letras, números, puntos o guiones bajos, sin espacios.';
   return 'No pude iniciar sesión. Probá de nuevo en un rato.'};
 var nameKey=function(n){return String(n||'').trim().toLowerCase()};
@@ -77,8 +84,10 @@ function claimName(n){var k;return nameFree(n).then(function(key){k=key;var old=
     return B.db.doc('usernames/'+k).set({uid:B.uid}).then(function(){if(old&&old!==k)return B.db.doc('usernames/'+old).delete().catch(function(){})})})
   .then(function(){store.uname=k;store.alias=String(n).trim().slice(0,20);MC.save();if(B.user&&B.user.updateProfile)B.user.updateProfile({displayName:store.alias}).catch(function(){});return publish(today())})}
 function signUp(name,email,pass){if(!B.auth)return Promise.reject({code:'no-config'});
-  return nameFree(name).then(function(){return B.auth.createUserWithEmailAndPassword(String(email).trim(),pass)})
-    .then(function(cred){B.user=cred.user;B.uid=cred.user.uid;return claimName(name).then(function(){if(cred.user.sendEmailVerification)cred.user.sendEmailVerification().catch(function(){})})})}
+  return nameFree(name).then(function(){B.creating=true;return B.auth.createUserWithEmailAndPassword(String(email).trim(),pass)})
+    .then(function(cred){B.user=cred.user;B.uid=cred.user.uid;if(cred.user.sendEmailVerification)cred.user.sendEmailVerification().catch(function(){});
+      return claimName(name).catch(function(e){throw {code:e&&e.code==='name-taken'?'name-taken-after':'name-after'}})})
+    .then(function(){B.creating=false;alSesion()},function(e){var was=B.creating;B.creating=false;if(was&&B.uid)alSesion();throw e})}
 function signIn(email,pass){if(!B.auth)return Promise.reject({code:'no-config'});return B.auth.signInWithEmailAndPassword(String(email).trim(),pass)}
 function resetPass(email){if(!B.auth)return Promise.reject({code:'no-config'});return B.auth.sendPasswordResetEmail(String(email).trim())}
 function setPhoto(dataUrl){store.photo=dataUrl||'';MC.save();return publish(today())}
