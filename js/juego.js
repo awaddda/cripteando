@@ -22,7 +22,7 @@ function check(){var S=MC.S,n=S.cur,c=clueOf(n),p=prog(n);if(p.done)return;var a
 function giveUp(){var S=MC.S,n=S.cur,p=prog(n);if(p.done)return;S.confirm='';p.done='l';finish(n,'l')}
 function finish(n,r){var S=MC.S,p=prog(n);store.hist[n]={r:r,a:p.g.length+(r==='w'?1:0),h:hintsOf(p)};S.typed='';S.msg='';S.fresh='end';save();MC.render();MC.base.publicar(n)}
 function share(btn){var n=MC.S.cur,p=prog(n),w=p.done==='w',s='';for(var i=0;i<p.g.length;i++)s+='✗';if(w)s+='✓';
-  var txt='Mate Críptico #'+n+'\n'+s+' · '+(hintsOf(p)?hintsOf(p)+(hintsOf(p)===1?' ayuda':' ayudas'):'sin ayudas');
+  var txt='Cripteando #'+n+'\n'+s+' · '+(hintsOf(p)?hintsOf(p)+(hintsOf(p)===1?' ayuda':' ayudas'):'sin ayudas');
   copyText(txt,function(ok){var m=$('#smsg');if(m){m.textContent=ok?'Copiado. Pegalo donde quieras.':'No pude copiar solo. Seleccioná y copiá este texto: '+txt.replace(/\n/g,' / ')}})}
 
 function copyText(t,cb){var done=function(ok){cb&&cb(ok)};

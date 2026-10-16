@@ -41,7 +41,7 @@ function loadScript(src){return new Promise(function(res,rej){var s=document.cre
 function connect(alCambiar,cambioSesion){if(alCambiar)avisar=alCambiar;if(cambioSesion)alSesion=cambioSesion;
   var cfg=window.MC_FIREBASE,ready;
   if(cfg&&cfg.apiKey)ready=window.firebase&&window.firebase.firestore?Promise.resolve():loadScript(SDK+'app-compat.js').then(function(){return Promise.all([loadScript(SDK+'auth-compat.js'),loadScript(SDK+'firestore-compat.js')])});
-  else if(isLocal()){B.local=true;cfg={apiKey:'local'};ready=window.firebase&&window.firebase.local?Promise.resolve():loadScript('js/base-local.js?v=20261016-6')}
+  else if(isLocal()){B.local=true;cfg={apiKey:'local'};ready=window.firebase&&window.firebase.local?Promise.resolve():loadScript('js/base-local.js?v=20261016-7')}
   else return Promise.resolve();
   return ready.then(function(){return init(cfg)},function(){return null})}
 function init(cfg){
@@ -57,7 +57,7 @@ function login(){if(!B.auth)return Promise.reject({code:'no-config'});var p=new 
 function wipeLocal(){store.hist={};store.prog={};store.learn={};store.votes={};store.subs=[];store.groups=[];store.draft={};store.uname='';store.photo='';store.pub=true;store.showName=true;
   store.alias='Jugador'+(100+Math.floor(Math.random()*900));for(var k in B.unsub){try{B.unsub[k]()}catch(e){}}B.unsub={};B.groups={};B.gmem={};MC.save()}
 function logout(){clearTimeout(upT);var go=B.uid?upload():Promise.resolve();return go.then(function(){return B.auth?B.auth.signOut():null}).then(wipeLocal)}
-var loginReason=function(e){var c=e&&e.code||'';try{console.warn('Mate Críptico, sesión:',c||e,e&&e.message||'')}catch(x){}
+var loginReason=function(e){var c=e&&e.code||'';try{console.warn('Cripteando, sesión:',c||e,e&&e.message||'')}catch(x){}
   if(c==='auth/popup-closed-by-user')return 'Cerraste la ventana antes de terminar. Probá de nuevo.';
   if(c==='auth/unauthorized-domain')return 'Este dominio todavía no está autorizado para iniciar sesión.';
   if(c==='auth/network-request-failed'||c==='unavailable')return 'No hay conexión. Probá de nuevo en un rato.';

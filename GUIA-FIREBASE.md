@@ -1,4 +1,4 @@
-# Cómo conectar Mate Críptico a Firebase
+# Cómo conectar Cripteando a Firebase
 
 Con Firebase funcionan el inicio de sesión (Google, o email y contraseña), la clasificación, los grupos, el envío de pistas, los comentarios y la sincronización del progreso entre dispositivos.
 
@@ -18,7 +18,7 @@ Todo lo de esta guía se hace desde la web y es gratis. Tardás unos 20 minutos.
 ## 2. Registrar la página web
 
 1. En la pantalla del proyecto, tocá el ícono **`</>`** (Web).
-2. En "Sobrenombre de la app" escribí `Mate Críptico`. **No** marques "Firebase Hosting": la página ya está en GitHub Pages.
+2. En "Sobrenombre de la app" escribí `Cripteando`. **No** marques "Firebase Hosting": la página ya está en GitHub Pages.
 3. Tocá **Registrar app**. Firebase te muestra un bloque de código con `firebaseConfig = { apiKey: "...", ... }`.
 4. Abrí el archivo `js/config.js` y copiá cada valor en su lugar. Te tiene que quedar así, con tus datos:
 
@@ -43,7 +43,7 @@ Todo lo de esta guía se hace desde la web y es gratis. Tardás unos 20 minutos.
    - Tocá **Google**, activalo, elegí tu email como "correo de asistencia" y guardá.
 3. En la pestaña **Configuración → Dominios autorizados**, tocá **Agregar dominio** y sumá:
    - `awaddda.github.io`
-   - tu dominio propio, cuando lo tengas (por ejemplo `matecriptico.com` y `www.matecriptico.com`).
+   - tu dominio propio, cuando lo tengas (por ejemplo `cripteando.eu.org`).
 
    Sin esto, el botón "Entrar con Google" muestra "Este dominio todavía no está autorizado".
 4. Opcional: en **Plantillas** podés traducir al español los emails de "confirmá tu dirección" y "cambiá tu contraseña", y cambiar el nombre del remitente.

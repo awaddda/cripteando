@@ -43,7 +43,7 @@ function preview(d){var t=segments(d),ans=norm(d.ans);
 
 function vSend(){var S=MC.S,d=draft(),u=MC.base.usuario(),tab=S.stab==='preview'?'preview':'form';syncRoles(d);
   var subs=store.subs.length?'<section class="acc-sec"><h2>Tus envíos</h2><ul class="list">'+store.subs.slice().reverse().map(function(s){return '<li class="panel" style="padding:12px 16px"><b class="mono">'+esc(s.answer)+'</b> · '+esc(s.mechLabel||'')+'<br><span class="muted">'+esc(s.text)+'</span><br><small class="muted">'+(s.sent?'Enviada: la estamos revisando':'Guardada en este dispositivo')+'</small></li>'}).join('')+'</ul></section>':'';
-  var h='<h1 class="page-title">Enviar una pista</h1><p class="lead">Proponé una pista críptica para Mate Críptico. La revisamos letra por letra antes de aceptarla y, si queda, pasa a la lista de próximas pistas del día. Puede tardar un tiempo en salir, aunque la aprobemos rápido.</p>'+
+  var h='<h1 class="page-title">Enviar una pista</h1><p class="lead">Proponé una pista críptica para Cripteando. La revisamos letra por letra antes de aceptarla y, si queda, pasa a la lista de próximas pistas del día. Puede tardar un tiempo en salir, aunque la aprobemos rápido.</p>'+
     '<p style="margin:-10px 0 20px"><button class="link" data-act="lguia-go">Cómo escribirla bien</button></p>'+MC.statusNote('enviar')+
     '<div class="tabs2 wide" role="group" aria-label="Vista"><button data-act="stab" data-v="form" aria-pressed="'+(tab==='form')+'">Formulario</button><button data-act="stab" data-v="preview" aria-pressed="'+(tab==='preview')+'">Vista previa</button></div>';
   if(tab==='preview')return h+preview(d)+subs;
