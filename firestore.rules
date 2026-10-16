@@ -1,0 +1,128 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function today() { return int((request.time.toMillis() - 10800000) / 86400000) - 20742 + 1; }
+    function isInt(x, lo, hi) { return x is int && x >= lo && x <= hi; }
+    function isText(x, lo, hi) { return x is string && x.size() >= lo && x.size() <= hi; }
+    function data() { return request.resource.data; }
+    function isPhoto(x) { return x is string && (x == '' || (x.size() < 40000 && x.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$'))); }
+
+    match /players/{uid} {
+      allow read: if true;
+      allow create, update: if signedIn() && me() == uid
+        && data().keys().hasOnly(['alias', 'ph', 'played', 'won', 'streak', 'best', 'u'])
+        && isText(data().alias, 1, 24)
+        && isPhoto(data().ph)
+        && isInt(data().played, 0, today())
+        && isInt(data().won, 0, data().played)
+        && isInt(data().streak, 0, today())
+        && isInt(data().best, 0, today())
+        && data().u is int;
+      allow delete: if signedIn() && me() == uid;
+    }
+
+    match /results/{id} {
+      allow read: if true;
+      allow create: if signedIn()
+        && id == string(data().n) + '_' + me()
+        && data().keys().hasOnly(['n', 'u', 'al', 'ph', 'a', 'h', 't'])
+        && data().u == me()
+        && data().n == today()
+        && isText(data().al, 1, 24)
+        && isPhoto(data().ph)
+        && isInt(data().a, 1, 1000)
+        && isInt(data().h, 0, 40)
+        && data().t is int;
+      allow update: if signedIn()
+        && id == string(data().n) + '_' + me()
+        && data().keys().hasOnly(['n', 'u', 'al', 'ph', 'a', 'h', 't'])
+        && data().u == me()
+        && data().n == resource.data.n
+        && data().a == resource.data.a
+        && data().h == resource.data.h
+        && isText(data().al, 1, 24)
+        && isPhoto(data().ph);
+      allow delete: if signedIn() && resource.data.u == me();
+    }
+
+    match /saves/{uid} {
+      allow read, delete: if signedIn() && me() == uid;
+      allow create, update: if signedIn() && me() == uid
+        && data().keys().hasOnly(['hist', 'prog', 'learn', 'votes', 'subs', 'alias', 'uname', 'photo', 'pub', 'showName', 'theme', 'u'])
+        && isText(data().alias, 1, 24)
+        && isPhoto(data().photo);
+    }
+
+    match /usernames/{name} {
+      allow read: if true;
+      allow create: if signedIn()
+        && name.matches('^[a-z0-9_.]{3,20}$')
+        && data().keys().hasOnly(['uid'])
+        && data().uid == me();
+      allow delete: if signedIn() && resource.data.uid == me();
+    }
+
+    match /groups/{code} {
+      allow read: if true;
+      allow create: if signedIn()
+        && code.matches('^[A-Z0-9]{5}$')
+        && data().keys().hasOnly(['name', 'owner', 't'])
+        && data().owner == me()
+        && isText(data().name, 1, 40);
+      allow update, delete: if signedIn() && resource.data.owner == me();
+    }
+
+    match /members/{id} {
+      allow read: if true;
+      allow create, update: if signedIn()
+        && id == data().g + '_' + me()
+        && data().keys().hasOnly(['g', 'u', 'on', 't'])
+        && data().u == me()
+        && data().on is bool
+        && exists(/databases/$(database)/documents/groups/$(data().g));
+    }
+
+    match /votes/{id} {
+      allow read: if true;
+      allow create, update: if signedIn()
+        && id == string(data().n) + '_' + me()
+        && data().keys().hasOnly(['n', 'u', 'v', 't'])
+        && data().u == me()
+        && isInt(data().n, 1, today())
+        && data().v in ['up', 'down', ''];
+    }
+
+    match /submissions/{id} {
+      allow create: if signedIn()
+        && data().keys().hasOnly(['u', 'al', 'pub', 'text', 'answer', 'mechs', 'seg', 'exp', 'hd', 'hi', 'hm', 'extra', 'notes', 't', 'st'])
+        && data().u == me()
+        && data().st == 'pendiente'
+        && data().pub is bool
+        && isText(data().al, 0, 24)
+        && isText(data().text, 8, 240)
+        && isText(data().answer, 2, 30)
+        && isText(data().mechs, 1, 300)
+        && isText(data().seg, 2, 4000)
+        && isText(data().exp, 8, 400)
+        && isText(data().hd, 0, 300)
+        && isText(data().hi, 0, 300)
+        && isText(data().hm, 0, 300)
+        && isText(data().extra, 2, 1200)
+        && isText(data().notes, 0, 400);
+      allow read, update, delete: if false;
+    }
+
+    match /feedback/{id} {
+      allow create: if signedIn()
+        && data().keys().hasOnly(['u', 'al', 'kind', 'msg', 't'])
+        && data().u == me()
+        && isText(data().al, 0, 24)
+        && isText(data().kind, 1, 40)
+        && isText(data().msg, 5, 1000);
+      allow read, update, delete: if false;
+    }
+  }
+}

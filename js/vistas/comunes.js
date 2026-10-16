@@ -2,14 +2,16 @@
 'use strict';
 var esc=MC.esc, COLORS=MC.COLORS;
 
-function statusNote(){
-  if(!MC.base.conectada())return '<div class="note warn">La base compartida no está conectada en esta versión de la página, así que la clasificación, los grupos y los envíos no se comparten con otros jugadores. Tu progreso sí se guarda en este navegador.</div>';
-  if(MC.base.puedeEscribir()===false)return '<div class="note warn">Tu acceso es de solo lectura: ves la clasificación, pero tus resultados no se publican. Pedile al dueño de la página permiso de colaborador.</div>';
-  return ''}
+var NOTE={clasificacion:'para aparecer en la clasificación.',grupos:'para crear un grupo o unirte a uno.',enviar:'para mandarnos tu pista.'};
+function statusNote(what){
+  if(!MC.base.conectada()||MC.base.uid()||!NOTE[what])return '';
+  return '<div class="note">Iniciá sesión en <button class="link" data-act="go" data-v="cuenta">Cuenta</button> '+NOTE[what]+'</div>'}
 
-var avatar=function(c,al){return '<span class="av" style="background:'+COLORS[Math.abs(c|0)%COLORS.length]+'" aria-hidden="true">'+esc(String(al||'?').trim().charAt(0).toUpperCase())+'</span>'};
+var hue=function(s){s=String(s||'');var h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return COLORS[Math.abs(h)%COLORS.length]};
+var photoOk=function(p){return typeof p==='string'&&p.length<40000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(p)};
+var avatar=function(ph,al,cls){var c='av'+(cls?' '+cls:'');if(photoOk(ph))return '<img class="'+c+'" src="'+ph+'" alt="">';return '<span class="'+c+'" style="background:'+hue(al)+'" aria-hidden="true">'+esc(String(al||'?').trim().charAt(0).toUpperCase())+'</span>'};
 var num=function(x){x=+x;return isFinite(x)?Math.round(x):0};
-function rankRows(rows,empty){if(!rows.length)return empty;return '<ol class="list" style="padding:0">'+rows.map(function(r,i){return '<li class="rank'+(r.me?' me':'')+'"><span class="pos">'+(i+1)+'</span>'+avatar(r.c,r.al)+'<span class="nm">'+esc(r.al||'Jugador')+(r.me?' <small>(vos)</small>':'')+(r.sub?'<br><small>'+esc(r.sub)+'</small>':'')+'</span>'+(r.val!=null?'<span class="pts" title="Pistas resueltas">'+num(r.val)+'</span>':'')+'</li>'}).join('')+'</ol>'}
+function rankRows(rows,empty){if(!rows.length)return empty;return '<ol class="list" style="padding:0">'+rows.map(function(r,i){return '<li class="rank'+(r.me?' me':'')+'"><span class="pos">'+(i+1)+'</span>'+avatar(r.ph,r.al)+'<span class="nm">'+esc(r.al||'Jugador')+(r.me?' <small>(vos)</small>':'')+(r.sub?'<br><small>'+esc(r.sub)+'</small>':'')+'</span>'+(r.val!=null?'<span class="pts" title="Pistas resueltas">'+num(r.val)+'</span>':'')+'</li>'}).join('')+'</ol>'}
 MC.num=num;
 
 var RL={def:'Definición',ind:'Indicador',mat:'Relleno'};

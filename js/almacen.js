@@ -1,14 +1,15 @@
 (function(MC){
 'use strict';
-var store={alias:'',color:0,hist:{},prog:{},groups:[],subs:[],learn:{},votes:{}};
+var store={alias:'',color:0,hist:{},prog:{},groups:[],subs:[],learn:{},votes:{},pub:true,showName:true,theme:'',draft:{},uname:'',photo:''};
 MC.store=store;
 MC.mem=false;
 
 var kind=function(x){return Array.isArray(x)?'a':(x===null?'n':typeof x)};
 function load(){try{var r=localStorage.getItem('mc_v1');if(r){var o=JSON.parse(r);if(o&&typeof o==='object')for(var k in store)if(k in o&&kind(o[k])===kind(store[k]))store[k]=o[k]}}catch(e){MC.mem=true}
   if(typeof store.alias!=='string'||!store.alias.trim()){store.alias='Jugador'+(100+Math.floor(Math.random()*900));save()}
+  if(['','light','dark'].indexOf(store.theme)<0)store.theme='';
   store.alias=store.alias.slice(0,24);store.groups=store.groups.filter(function(c){return typeof c==='string'&&/^[A-Z0-9]{5}$/.test(c)})}
-function save(){try{localStorage.setItem('mc_v1',JSON.stringify(store))}catch(e){MC.mem=true}}
+function save(){try{localStorage.setItem('mc_v1',JSON.stringify(store))}catch(e){MC.mem=true}if(MC.alGuardar)MC.alGuardar()}
 
 MC.load=load;
 MC.save=save;
