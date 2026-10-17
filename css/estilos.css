@@ -455,5 +455,7 @@ img.av{display:block;background:var(--surface-2)}
 .splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--bg);color:var(--ink-2);font-size:15px}
 .splash p{margin:0}
 .splash .ld-mate{width:251px}
-.splash.out.go{opacity:0;pointer-events:none;transition:opacity .35s ease}
-@media (prefers-reduced-motion:reduce){.splash.out.go{transition:none}}
+/* Al irse: primero se va el fondo (se ve la página con el mate encima) y después el mate */
+.splash.out.go{background-color:transparent;pointer-events:none;transition:background-color .35s ease}
+.splash.out.go .ld-mate{opacity:0;transition:opacity .25s ease .12s}
+@media (prefers-reduced-motion:reduce){.splash.out.go,.splash.out.go .ld-mate{transition:none}}

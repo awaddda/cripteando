@@ -3,7 +3,7 @@
 var $=MC.$, norm=MC.norm, today=MC.today, clueOf=MC.clueOf, store=MC.store, save=MC.save;
 
 var BASE=(function(){try{return new URL('../',document.currentScript.src).pathname}catch(e){return '/'}})();
-var S={view:'hoy',cur:today(),typed:'',msg:'',msgCls:'',fresh:'',bk:true,
+var S={view:'hoy',cur:today(),typed:'',msg:'',msgCls:'',fresh:'',bk:false,
   learn:null,lstep:0,lph:'def',lfound:{},ltyped:'',lmsg:'',lcls:'',lfr:null,lwin:false,
 lb:'racha',amsg:'',gsel:null,gmsg:'',gcls:'',confirm:'',smsg:'',scls:'',pz:''};
 MC.S=S;
@@ -31,11 +31,16 @@ function allDays(){var o=[];for(var n=1;n<=today();n++)o.push(n);return o}
 // Pantalla de bienvenida: se va cuando la pista de hoy está lista (o falló), pero queda al menos SPLASH ms para que se vea el mate
 var SPLASH=1300;
 function hideSplash(){var el=document.getElementById('splash');if(!el||el.className.indexOf('out')>-1)return;el.className+=' out';
-  setTimeout(function(){el.className+=' go';replayEnd();setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},400)},Math.max(0,SPLASH-(window.performance?performance.now():0)))}
+  setTimeout(function(){el.className+=' go';replayEnd();setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},450)},Math.max(0,SPLASH-(window.performance?performance.now():0)))}
 // Al entrar con la pista ya terminada, repite la animación del final (letras, partes y resultado) mientras se va la pantalla de carga
 function replayEnd(){if(S.view!=='hoy'||editing()||!MC.clueOf(S.cur)||!MC.prog(S.cur).done)return;S.fresh='end';render()}
 setTimeout(hideSplash,8000);
+// Mientras corre la animación del final (S.hold), los redibujos de fondo (Firebase, carga de pistas) esperan a que termine;
+// si no, reemplazan las letras y el resultado a mitad de camino. Cualquier clic o tecla la libera.
+var held=null;
 function render(){
+  if(S.hold&&S.view==='hoy'&&S.hold.n===S.cur&&S.fresh!=='end'&&Date.now()<S.hold.t){renderNav();if(!held)held=setTimeout(function(){held=null;render()},S.hold.t-Date.now()+20);return}
+  S.hold=null;
   if(S.pz!=='cargando'){if(S.view==='archivo'&&!allAsked){allAsked=true;need(allDays())}else if(S.view==='hoy'&&!MC.clueOf(S.cur))need([S.cur])}
   renderNav();
   var f={hoy:MC.vHoy,archivo:MC.vArchivo,aprender:MC.vAprender,estadisticas:MC.vStats,clasificacion:MC.vRank,grupos:MC.vGroups,enviar:MC.vSend,cuenta:MC.vAccount,admin:MC.vAdmin}[S.view]||MC.vHoy;
@@ -64,6 +69,7 @@ function refreshLive(){if(S.view==='clasificacion')$('#main').innerHTML=MC.vRank
 MC.render=render;
 MC.go=go;
 
+['click','keydown','input'].forEach(function(ev){document.addEventListener(ev,function(){S.hold=null},true)});
 document.addEventListener('click',function(e){var t=e.target.closest('[data-act]');if(!t)return;var a=t.dataset.act;
   if(a==='go')go(t.dataset.v,t.dataset.n);
   else if(a==='open'){S.cur=+t.dataset.n;S.typed='';S.msg='';go('hoy',S.cur)}

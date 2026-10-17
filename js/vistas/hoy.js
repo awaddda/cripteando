@@ -23,6 +23,7 @@ function vHoy(){var S=MC.S;
   var n=S.cur,c=clueOf(n),p=prog(n),len=norm(c.a).length,done=!!p.done,win=p.done==='w';
 
   var fresh=S.fresh||'';S.fresh='';
+  if(fresh==='end')S.hold={n:n,t:Date.now()+len*110+1700}; // lo que tarda en terminar la animación del final
   var roles={def:p.hd||done,ind:p.hi||done,mat:p.hm||done};
   var clueOf2=function(anim){return c.t.map(function(x){return x[1]&&roles[x[1]]?'<mark class="seg m-'+x[1]+(anim&&(fresh===x[1]||fresh==='end')?' fresh':'')+'" title="'+LBL[x[1]]+'">'+esc(x[0])+'<span class="sr"> ('+LBL[x[1]].toLowerCase()+')</span></mark>':esc(x[0])}).join(' ')+' <span class="len">('+len+')</span>'};
   var pop=fresh==='let'?letterOrder(len)[p.hl-1]:-1;

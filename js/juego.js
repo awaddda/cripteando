@@ -20,7 +20,7 @@ function check(){var S=MC.S,n=S.cur,c=clueOf(n),p=prog(n);if(!c||p.done)return;v
   S.msg='No es esa. Probá de nuevo.';S.msgCls='bad';MC.render();var el=$('#cells');if(el){el.classList.add('shake')}}
 
 function giveUp(){var S=MC.S,n=S.cur,p=prog(n);if(p.done)return;S.confirm='';p.done='l';finish(n,'l')}
-function finish(n,r){var S=MC.S,p=prog(n);store.hist[n]={r:r,a:p.g.length+(r==='w'?1:0),h:hintsOf(p),d:MC.today()};S.typed='';S.msg='';S.fresh='end';save();MC.render();MC.base.publicar(n)}
+function finish(n,r){var S=MC.S,p=prog(n);store.hist[n]={r:r,a:p.g.length+(r==='w'?1:0),h:hintsOf(p),d:MC.today()};S.typed='';S.msg='';S.fresh='end';S.bk=false;save();MC.render();MC.base.publicar(n)}
 // Tarjeta cuadrada con el resultado, con los colores del tema actual
 function shareImg(btn){var n=MC.S.cur,p=prog(n),w=p.done==='w',h=hintsOf(p),c=clueOf(n);if(!p.done||!c)return;
   var css=getComputedStyle(document.documentElement),v=function(k){return css.getPropertyValue(k).trim()},
