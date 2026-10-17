@@ -2,6 +2,7 @@
 'use strict';
 var $=MC.$, norm=MC.norm, today=MC.today, clueOf=MC.clueOf, store=MC.store, save=MC.save;
 
+var BASE=(function(){try{return new URL('../',document.currentScript.src).pathname}catch(e){return '/'}})();
 var S={view:'hoy',cur:today(),typed:'',msg:'',msgCls:'',fresh:'',bk:true,
   learn:null,lstep:0,lph:'def',lfound:{},ltyped:'',lmsg:'',lcls:'',lfr:null,lwin:false,
 lb:'hoy',amsg:'',gsel:null,gmsg:'',gcls:'',confirm:'',smsg:'',scls:'',pz:''};
@@ -36,8 +37,14 @@ function render(){
 function go(v,n){if(n==='today')n=today();var prev=S.cur;if(n)S.cur=n;if(v==='aprender')S.learn=null;S.view=v;
   if(n&&n!==prev){S.typed='';S.msg=''}
   S.confirm='';mark(v);render();window.scrollTo(0,0)}
-function here(){return location.pathname+location.search}
-function mark(v){try{var st=history.state;if(!(st&&st.v===v&&st.n===S.cur))history.pushState({v:v,n:S.cur},'',here())}catch(e){}}
+// Cada sección tiene su ruta: BASE es Hoy, BASE+'APRENDER' es Aprender, etc.
+function isView(v){return v==='admin'||VIEWS.some(function(x){return x[0]===v})}
+function urlOf(v){return location.protocol==='file:'?location.pathname:BASE+(v==='hoy'?'':v.toUpperCase())}
+function viewOf(p){var lp=p.toLowerCase(),lb=BASE.toLowerCase(),s;
+  if(lp.indexOf(lb)===0)s=lp.slice(lb.length);else if(lp+'/'===lb)s='';else return null;
+  s=decodeURIComponent(s).replace(/^index\.html$/,'').replace(/\/+$/,'');
+  return !s?'hoy':(isView(s)?s:null)}
+function mark(v){try{var st=history.state;if(!(st&&st.v===v&&st.n===S.cur))history.pushState({v:v,n:S.cur},'',urlOf(v))}catch(e){}}
 
 function refreshLive(){if(S.view==='clasificacion')$('#main').innerHTML=MC.vRank();else if(S.view==='grupos')MC.liveGroups()}
 MC.render=render;
@@ -113,7 +120,7 @@ function say(id,t,cls){var m=$('#'+id);if(m){m.textContent=t;m.className='msg '+
 document.addEventListener('change',function(e){if(e.target.id!=='a-photo'||!e.target.files||!e.target.files[0])return;
   say('p-out','Subiendo foto…','ok');MC.readPhoto(e.target.files[0]).then(function(d){return MC.base.cambiarFoto(d)}).then(function(){render()})
   .catch(function(err){say('p-out',err&&err.code==='photo-type'?'Elegí un archivo de imagen.':(err&&err.code==='photo-size'?'La imagen es muy pesada: elegí una de menos de 15 MB.':'No pude usar esa imagen. Probá con otra.'))})});
-window.addEventListener('popstate',function(e){var st=e.state||{};S.view=st.v==='admin'||VIEWS.some(function(x){return x[0]===st.v})?st.v:'hoy';var n=st.n||today();if(n!==S.cur){S.cur=n;S.typed='';S.msg=''}S.confirm='';render();window.scrollTo(0,0)});
+window.addEventListener('popstate',function(e){var st=e.state||{};S.view=isView(st.v)?st.v:(viewOf(location.pathname)||'hoy');var n=st.n||today();if(n!==S.cur){S.cur=n;S.typed='';S.msg=''}S.confirm='';render();window.scrollTo(0,0)});
 
 window.addEventListener('storage',function(e){if(e.key==='mc_v1'&&!editing()){MC.load();applyTheme();render()}});
 function applyTheme(){var r=document.documentElement;if(store.theme)r.setAttribute('data-theme',store.theme);else r.removeAttribute('data-theme')}
@@ -129,7 +136,10 @@ setInterval(function(){var n=today();
   var el=$('#cd');if(el)el.textContent=MC.countdown()},1000);
 
 MC.load();applyTheme();
-try{history.replaceState({v:'hoy',n:S.cur},'',here())}catch(e){}
+// 404.html manda las rutas que GitHub Pages no conoce como ?r=APRENDER
+(function(){var r=null;try{r=new URLSearchParams(location.search).get('r')}catch(e){}
+  S.view=viewOf(r!==null?BASE+r:location.pathname)||'hoy';
+  try{history.replaceState({v:S.view,n:S.cur},'',urlOf(S.view)+location.hash)}catch(e){}})();
 if(!MC.clueOf(S.cur))S.pz='cargando';
 render();
 MC.base.conectar(refreshLive,function(){S.amsg='';S.am=null;S.adm=null;S.ae=null;applyTheme();if(editing()&&S.view!=='cuenta')refreshLive();else render()}).then(function(){
