@@ -15,14 +15,16 @@ function stars(html){return String(html||'').replace(/<b>([\s\S]*?)<\/b>/gi,'*$1
 function unstars(s){return esc(String(s||'').trim()).replace(/\*([^*]+)\*/g,'<b>$1</b>')}
 function syncRoles(e){var w=MC.palabras(e.text),old=e.roles,out=[];for(var i=0;i<w.length;i++)out.push({w:w[i],r:old[i]&&old[i].w===w[i]?old[i].r:''});e.roles=out;return out}
 function fromClue(n,c){var roles=[];c.t.forEach(function(x){MC.palabras(x[0]).forEach(function(w){roles.push({w:w,r:x[1]||''})})});
-  return {n:n,isNew:false,a:c.a,m:c.m||'',ik:c.ik||'',text:roles.map(function(x){return x.w}).join(' '),roles:roles,ex:stars(c.ex)}}
+  return {n:n,isNew:false,a:c.a,m:c.m||'',ik:c.ik||'',text:roles.map(function(x){return x.w}).join(' '),roles:roles,ex:stars(c.ex),pk:typeof c.por!=='string'?'':(c.por?'nombre':'anonima'),por:c.por||''}}
 function fromSub(s){var seg=[];try{seg=JSON.parse(s.seg)||[]}catch(e){}
   var labels=String(s.mechs||'').split(',').map(function(k){var m=MECHS.filter(function(x){return x[0]===k})[0];return m?m[1]:''}).filter(Boolean);
   var m=labels.length===1?labels[0]:(labels.length?'Combinada':'');
   var e=fromClue(nextN(),{a:String(s.answer||''),m:m,ik:IK[m]||'',t:Array.isArray(seg)&&seg.length?seg:[[String(s.text||''),'']],ex:''});
-  e.isNew=true;e.ex=String(s.exp||'');e.sub=s.id;return e}
+  e.isNew=true;e.ex=String(s.exp||'');e.sub=s.id;e.pk=s.pub&&s.al?'nombre':'anonima';e.por=s.pub&&s.al?String(s.al):'';return e}
 function toClue(e){var t=[];syncRoles(e).forEach(function(x){var l=t[t.length-1];if(l&&l[1]===x.r)l[0]+=' '+x.w;else t.push([x.w,x.r])});
-  return {a:String(e.a||'').trim().toUpperCase(),m:String(e.m||'').trim(),ik:String(e.ik||'').trim(),t:t,ex:unstars(e.ex)}}
+  var c={a:String(e.a||'').trim().toUpperCase(),m:String(e.m||'').trim(),ik:String(e.ik||'').trim(),t:t,ex:unstars(e.ex)};
+  if(e.pk==='anonima')c.por='';else if(e.pk==='nombre'&&String(e.por||'').trim())c.por=String(e.por).trim().slice(0,24);
+  return c}
 
 function tokens(e){var w=syncRoles(e);
   if(!w.length)return '<p class="muted">Cuando escribas el enunciado, sus palabras aparecen acá.</p>';
@@ -35,7 +37,7 @@ function checkInfo(e){var c=toClue(e),ans=norm(c.a);
 function prev(e){var c=toClue(e),len=norm(c.a).length;
   if(!c.t.length||!len)return '<p class="muted">Completá el enunciado y la respuesta para ver cómo la verían los jugadores.</p>';
   var clue=c.t.map(function(x){return x[1]?'<mark class="seg m-'+x[1]+'">'+esc(x[0])+'</mark>':esc(x[0])}).join(' ')+' <span class="len">('+len+')</span>';
-  return '<div class="spreview">'+MC.chips(c.t,{def:1,ind:1,mat:1})+'<p class="clue">'+clue+'</p>'+MC.desglose(c.t,c.ik,c.ex)+MC.ansBox(c.a)+'</div>'}
+  return '<div class="spreview">'+MC.chips(c.t,{def:1,ind:1,mat:1})+'<p class="clue">'+clue+'</p>'+MC.firma(c)+MC.desglose(c.t,c.ik,c.ex)+MC.ansBox(c.a)+'</div>'}
 
 function editor(e){var S=MC.S,T=today(),role=S.arole===undefined?'def':S.arole,ck=checkInfo(e);
   var opts=MECHS.map(function(m){return m[1]});if(e.m&&opts.indexOf(e.m)<0)opts.unshift(e.m);
@@ -47,7 +49,9 @@ function editor(e){var S=MC.S,T=today(),role=S.arole===undefined?'def':S.arole,c
     field('ae-text','Enunciado','<textarea id="ae-text" class="serif" rows="3" maxlength="240" placeholder="Tema confuso para tomar con bombilla">'+esc(e.text)+'</textarea>','Sin el número de letras: la página lo agrega sola.')+
     field('ae-a','Respuesta','<input id="ae-a" maxlength="30" autocomplete="off" value="'+esc(e.a)+'" style="text-transform:uppercase;font-family:var(--font-mono);letter-spacing:.1em">')+
     field('ae-m','Mecanismo','<select id="ae-m">'+(e.m?'':'<option value="">Elegí uno</option>')+opts.map(function(o){return '<option'+(o===e.m?' selected':'')+'>'+esc(o)+'</option>'}).join('')+'</select>')+
-    field('ae-ik','Qué pide el indicador','<input id="ae-ik" maxlength="80" autocomplete="off" value="'+esc(e.ik)+'" placeholder="un anagrama">','Completa la frase «el indicador pide…». Dejalo vacío si la pista no tiene indicador.')+'</section>';
+    field('ae-ik','Qué pide el indicador','<input id="ae-ik" maxlength="80" autocomplete="off" value="'+esc(e.ik)+'" placeholder="un anagrama">','Completa la frase «el indicador pide…». Dejalo vacío si la pista no tiene indicador.')+
+    field('ae-pk','Quién la escribió','<select id="ae-pk">'+[['','Cripteando (no se muestra firma)'],['nombre','Un jugador, con su nombre'],['anonima','Un jugador, de forma anónima']].map(function(o){return '<option value="'+o[0]+'"'+(o[0]===(e.pk||'')?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select>')+
+    field('ae-por','Nombre del autor','<input id="ae-por" maxlength="24" autocomplete="off" value="'+esc(e.por||'')+'"'+(e.pk==='nombre'?'':' disabled')+'>','Aparece debajo de la pista: «Pista enviada por…».')+'</section>';
   h+='<section class="acc-sec"><h2>Partes</h2><small class="muted">Elegí un rol y tocá las palabras del enunciado. Marcar la definición es obligatorio.</small>'+
     '<div class="roles" role="group" aria-label="Rol a marcar">'+[['def','Definición'],['mat','Relleno'],['ind','Indicador'],['','Borrar']].map(function(r){var on=role===r[0];return '<button type="button" class="rchip'+(r[0]?' r-'+r[0]:' r-how')+(on?' on':'')+'" data-act="arole" data-v="'+r[0]+'" aria-pressed="'+on+'">'+r[1]+'</button>'}).join('')+'</div>'+
     '<div id="ae-tokens">'+tokens(e)+'</div>'+
@@ -90,10 +94,11 @@ function load(){var S=MC.S,ad=A();if(!MC.base.esAdmin()||ad.st==='cargando')retu
     .then(function(){ad.st='listo'},function(e){ad.st='error';try{console.warn('Cripteando, administrar:',e&&e.code||e,e&&e.message||'')}catch(x){}}).then(function(){if(S.view==='admin'&&!S.ae)MC.render()})}
 
 function readForm(){var e=MC.S.ae;if(!e)return null;var v=function(id){var x=$('#'+id);return x?x.value:null},y;
-  if((y=v('ae-text'))!==null)e.text=y;if((y=v('ae-a'))!==null)e.a=y;if((y=v('ae-m'))!==null)e.m=y;if((y=v('ae-ik'))!==null)e.ik=y;if((y=v('ae-ex'))!==null)e.ex=y;
+  if((y=v('ae-pk'))!==null)e.pk=y;if((y=v('ae-por'))!==null)e.por=y;if((y=v('ae-text'))!==null)e.text=y;if((y=v('ae-a'))!==null)e.a=y;if((y=v('ae-m'))!==null)e.m=y;if((y=v('ae-ik'))!==null)e.ik=y;if((y=v('ae-ex'))!==null)e.ex=y;
   syncRoles(e);return e}
 function input(target){var e=readForm();if(!e)return;
   if(target&&target.id==='ae-text'){var tk=$('#ae-tokens');if(tk)tk.innerHTML=tokens(e)}
+  if(target&&target.id==='ae-pk'){var po=$('#ae-por');if(po)po.disabled=e.pk!=='nombre'}
   if(target&&target.id==='ae-m'&&!e.ik&&IK[e.m]){e.ik=IK[e.m];var ik=$('#ae-ik');if(ik)ik.value=e.ik}
   var ck=$('#ae-check');if(ck){var i=checkInfo(e);ck.className=i.cls;ck.textContent=i.text}
   var pv=$('#ae-prev');if(pv)pv.innerHTML=prev(e)}
@@ -112,6 +117,7 @@ function save(){var S=MC.S,ad=A(),e=readForm();if(!e)return;var c=toClue(e);
   if(!c.m)return say('Elegí el mecanismo.');
   if(!c.t.some(function(x){return x[1]==='def'}))return say('Marcá la definición en las partes.');
   if(!c.ex)return say('Explicá cómo se arma la respuesta.');
+  if(e.pk==='nombre'&&!String(e.por||'').trim())return say('Escribí el nombre del autor, o elegí que sea anónima.');
   say('Guardando…','ok');
   MC.base.guardarPista(e.n,c).then(function(){var x=find(e.n);if(x)x.c=c;else{ad.list.push({n:e.n,c:c});ad.list.sort(function(p,q){return p.n-q.n})}
     var fin=function(){S.ae=null;ad.msg='Guardé la pista #'+e.n+'.';ad.cls='ok';MC.render();window.scrollTo(0,0)};
@@ -119,7 +125,7 @@ function save(){var S=MC.S,ad=A(),e=readForm();if(!e)return;var c=toClue(e);
   .catch(function(err){say('No pude guardarla: '+MC.base.motivo(err))})}
 
 function click(a,t){var S=MC.S,ad=A(),e;
-  if(a==='anew')S.ae={n:nextN(),isNew:true,a:'',m:'',ik:'',text:'',roles:[],ex:''};
+  if(a==='anew')S.ae={n:nextN(),isNew:true,a:'',m:'',ik:'',text:'',roles:[],ex:'',pk:'',por:''};
   else if(a==='aedit'){var x=find(+t.dataset.n);if(x)S.ae=fromClue(x.n,x.c)}
   else if(a==='aback')S.ae=null;
   else if(a==='arole'){readForm();S.arole=t.dataset.v}

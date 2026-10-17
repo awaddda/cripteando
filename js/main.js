@@ -5,23 +5,36 @@ var $=MC.$, norm=MC.norm, today=MC.today, clueOf=MC.clueOf, store=MC.store, save
 var BASE=(function(){try{return new URL('../',document.currentScript.src).pathname}catch(e){return '/'}})();
 var S={view:'hoy',cur:today(),typed:'',msg:'',msgCls:'',fresh:'',bk:true,
   learn:null,lstep:0,lph:'def',lfound:{},ltyped:'',lmsg:'',lcls:'',lfr:null,lwin:false,
-lb:'hoy',amsg:'',gsel:null,gmsg:'',gcls:'',confirm:'',smsg:'',scls:'',pz:''};
+lb:'racha',amsg:'',gsel:null,gmsg:'',gcls:'',confirm:'',smsg:'',scls:'',pz:''};
 MC.S=S;
-var VIEWS=[['hoy','Hoy','M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'],
- ['archivo','Archivo','M4 19V5a2 2 0 0 1 2-2h13v14H6a2 2 0 0 0-2 2zm0 0a2 2 0 0 0 2 2h13'],
- ['aprender','Aprender','M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5'],
- ['estadisticas','Estadísticas','M5 20V10M12 20V4M19 20v-7'],
- ['clasificacion','Clasificación','M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3'],
- ['grupos','Grupos','M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9.5 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM21 20v-1a4 4 0 0 0-3-3.9M16 4.1a3.5 3.5 0 0 1 0 6.8'],
- ['enviar','Enviar','M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z'],
- ['cuenta','Cuenta','M18.5 20v-1a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4v1M12 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z']];
-var ico=function(d){return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+d+'"/></svg>'};
+// Íconos propios: el trazo va en el color del texto y las partes {y} van rellenas con el verde de la yerba.
+// {t,w,p} agrupa partes achicadas con transform; w compensa el grosor del trazo para que siga viéndose de 1.8. así Hoy y Grupos reusan el mate del logo (coordenadas de 40x40).
+var MATE=['M10.5 18.5C7 23.5 6.2 30 10 34c3.4 3.4 16.6 3.4 20 0 3.8-4 3-10.5-.5-15.5z','M21.5 15 27.6 5.2c.6-1 1.6-1.4 3.4-1.4',{y:'M10.6 16.2C14 11.4 26 11.4 29.4 16.2z'}];
+var VIEWS=[['hoy','Hoy',[{t:'translate(2.6 .6) scale(.62)',w:2.9,p:MATE.concat(['M10.5 11c-1.5-1.6 1.5-3.2 0-4.8M15.5 11c-1.5-1.6 1.5-3.2 0-4.8'])}]],
+ ['archivo','Archivo',['M7.5 3h10a1.5 1.5 0 0 1 1.5 1.5v15a1.5 1.5 0 0 1-1.5 1.5h-10z','M5 6.5h4.5M5 10.5h4.5M5 14.5h4.5M5 18.5h4.5','M12.5 8h3.5M12.5 11.5h3.5']],
+ ['aprender','Aprender',['M9.5 18h5M10.5 21h3','M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.1V18h5v-2.1c0-.8.4-1.6 1.1-2.1A6 6 0 0 0 12 3z',{y:'M10.6 11.6 12 9.4l1.4 2.2-1.4 2.2z'}]],
+ ['estadisticas','Estadísticas',['M3.5 20.5h17','M5 14.5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v6H5zM10 10.5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v10h-4z',{y:'M15 4.5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v16h-4z'}]],
+ ['clasificacion','Clasificación',['M3 20.5h18','M9 20.5V11h6v9.5M3.5 20.5V15H9M15 20.5V16.5h5.5v4',{y:'M12 3.2l1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2-1.6-1.5 2.2-.3z'}]],
+ ['grupos','Grupos',['M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9.5 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM21 20v-1a4 4 0 0 0-3-3.9M16 4.1a3.5 3.5 0 0 1 0 6.8']],
+ ['enviar','Enviar',['M14.8 4.2a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8L9.5 19.5 4 20l.5-5.5z','M13 6l5 5','M13.5 20.5h6.5']],
+ ['cuenta','Cuenta',['M12 12.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8z','M4.5 21c.9-3.6 3.9-5.6 7.5-5.6s6.6 2 7.5 5.6']]];
+var part=function(p){return typeof p==='string'?'<path d="'+p+'"/>':(p.t?'<g transform="'+p.t+'" stroke-width="'+p.w+'">'+p.p.map(part).join('')+'</g>':'<path class="ico-y" d="'+p.y+'"/>')};
+var ico=function(parts){return '<svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+parts.map(part).join('')+'</svg>'};
 
-function renderNav(){var SEP={archivo:1,aprender:1,grupos:1,enviar:1};$('#nav').innerHTML=VIEWS.map(function(v){return (SEP[v[0]]?'<span class="sep" aria-hidden="true"></span>':'')+'<button class="tab" data-act="go" data-v="'+v[0]+'" title="'+v[1]+'"'+(v[0]==='hoy'?' data-n="today"':'')+(S.view===v[0]?' aria-current="page"':'')+'>'+ico(v[2])+'<span>'+v[1]+'</span></button>'}).join('')}
+function renderNav(){var SEP={archivo:1,aprender:1,grupos:1,enviar:1},tab=function(v){return '<button class="tab" data-act="go" data-v="'+v[0]+'"'+(v[0]==='hoy'?' data-n="today"':'')+(S.view===v[0]?' aria-current="page"':'')+'>'+ico(v[2])+'<span>'+v[1]+'</span></button>'};
+  // Cuenta va aparte, sola a la derecha
+  $('#nav').innerHTML='<div class="nav-mid">'+VIEWS.filter(function(v){return v[0]!=='cuenta'}).map(function(v){return (SEP[v[0]]?'<span class="sep" aria-hidden="true"></span>':'')+tab(v)}).join('')+'</div>'+tab(VIEWS[VIEWS.length-1])}
 var allAsked=false,asked={};
 function need(ns){if(!MC.base.conectada())return;ns=MC.faltan(ns).filter(function(n){return !asked[n]});if(!ns.length)return;ns.forEach(function(n){asked[n]=1});
   S.pz='cargando';MC.base.pistas(ns).then(function(){S.pz='listo'},function(){S.pz='error'}).then(function(){if(!editing())render()})}
 function allDays(){var o=[];for(var n=1;n<=today();n++)o.push(n);return o}
+// Pantalla de bienvenida: se va cuando la pista de hoy está lista (o falló), pero queda al menos SPLASH ms para que se vea el mate
+var SPLASH=1300;
+function hideSplash(){var el=document.getElementById('splash');if(!el||el.className.indexOf('out')>-1)return;el.className+=' out';
+  setTimeout(function(){el.className+=' go';replayEnd();setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},400)},Math.max(0,SPLASH-(window.performance?performance.now():0)))}
+// Al entrar con la pista ya terminada, repite la animación del final (letras, partes y resultado) mientras se va la pantalla de carga
+function replayEnd(){if(S.view!=='hoy'||editing()||!MC.clueOf(S.cur)||!MC.prog(S.cur).done)return;S.fresh='end';render()}
+setTimeout(hideSplash,8000);
 function render(){
   if(S.pz!=='cargando'){if(S.view==='archivo'&&!allAsked){allAsked=true;need(allDays())}else if(S.view==='hoy'&&!MC.clueOf(S.cur))need([S.cur])}
   renderNav();
@@ -33,6 +46,7 @@ function render(){
   if(S.view==='grupos')MC.liveGroups();
   if(S.view==='enviar')MC.checkSend();
   if(S.view==='admin'&&MC.base.esAdmin()&&(!S.adm||!S.adm.st))MC.adminLoad();
+  if(S.view!=='hoy'||MC.clueOf(S.cur)||S.pz!=='cargando')hideSplash();
 }
 function go(v,n){if(n==='today')n=today();var prev=S.cur;if(n)S.cur=n;if(v==='aprender')S.learn=null;S.view=v;
   if(n&&n!==prev){S.typed='';S.msg=''}
@@ -77,7 +91,7 @@ document.addEventListener('click',function(e){var t=e.target.closest('[data-act]
   else if(a==='lseg')MC.learnTap(+t.dataset.i);
   else if(a==='lcheck')MC.learnCheck();
   else if(a==='lshow')MC.learnShow();
-  else if(a==='share')MC.share(t);
+  else if(a==='shareimg')MC.shareImg(t);
   else if(a==='lb'){S.lb=t.dataset.v;render()}
   else if(a==='gsel'){S.gsel=t.dataset.c;S.confirm='';MC.liveGroups()}
   else if(a==='copycode'){MC.copyText(S.gsel,function(ok){t.textContent=ok?'Copiado':'Seleccioná el código'})}

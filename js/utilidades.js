@@ -23,7 +23,8 @@ MC.norm=function(s){return String(s).toUpperCase().replace(/Ñ/g,'\u0001').norma
 
 var EPOCH=Math.floor(Date.UTC(2026,9,16)/86400000), DAY=86400000, OFF=3*3600000;
 
-MC.today=function(){return Math.max(1,Math.floor((Date.now()-OFF)/DAY)-EPOCH+1)};
+MC.dayOf=function(ms){return Math.floor((ms-OFF)/DAY)-EPOCH+1};
+MC.today=function(){return Math.max(1,MC.dayOf(Date.now()))};
 
 MC.clueOf=function(n){return PZ[Math.max(1,Math.floor(n)||1)]||null};
 MC.fmtDate=function(n){return new Intl.DateTimeFormat('es-AR',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'}).format(new Date((EPOCH+n-1)*DAY))};

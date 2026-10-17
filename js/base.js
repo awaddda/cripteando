@@ -10,7 +10,7 @@ var reason=function(e){var c=e&&e.code||'';
   if(c==='unavailable')return 'no hay conexión. Probá de nuevo en un rato.';
   if(c==='auth/requires-recent-login')return 'por seguridad, cerrá sesión, volvé a entrar y probá de nuevo.';
   return 'probá de nuevo en un rato.'};
-function playerDoc(){var s=stats();return {alias:store.alias,ph:store.photo||'',played:s.played,won:s.won,streak:streak(),best:bestStreak(),u:Date.now()}}
+function playerDoc(){var s=stats();return {alias:store.alias,ph:store.photo||'',played:s.played,won:s.won,streak:streak(),best:bestStreak(),last:MC.streakLast(),hw:s.hintsWon,u:Date.now()}}
 function withRetry(fn){return fn().catch(function(e){if(e&&e.code==='unavailable'){return new Promise(function(r){setTimeout(r,600+Math.random()*600)}).then(fn)}throw e})}
 var genCode=function(){var a='ABCDEFGHJKMNPQRSTUVWXYZ23456789',s='';for(var i=0;i<5;i++)s+=a[Math.floor(Math.random()*a.length)];return s};
 
@@ -109,8 +109,13 @@ function mergeCloud(r){if(!r||typeof r!=='object')return;var rh=r.hist||{},rp=r.
   if(['','light','dark'].indexOf(r.theme)>-1)store.theme=r.theme}
 function upload(){if(!B.db||!B.uid)return Promise.resolve();return withRetry(function(){return B.db.doc('saves/'+B.uid).set(cloudDoc())}).catch(function(){})}
 function scheduleUpload(){if(syncing||!B.db||!B.uid)return;clearTimeout(upT);upT=setTimeout(upload,1500)}
+// Las partidas viejas no guardaban qué día se resolvieron. Si hay un resultado publicado ese mismo día, fue a tiempo;
+// si no, se jugó después desde el archivo. Sin perfil público nunca se publicó nada, así que se dejan como están.
+function fixDays(){var T=today(),ns=Object.keys(store.hist).map(Number).filter(function(n){var h=store.hist[n];return h&&h.r==='w'&&h.d==null&&n<T});
+  if(!ns.length||!store.pub)return Promise.resolve();
+  return Promise.all(ns.map(function(n){return B.db.doc('results/'+n+'_'+B.uid).get().then(function(s){store.hist[n].d=s.exists?n:T},function(){})}))}
 function syncIn(){if(!B.db||!B.uid)return Promise.resolve();syncing=true;
-  return withRetry(function(){return B.db.doc('saves/'+B.uid).get()}).then(function(s){if(s.exists)mergeCloud(s.data());MC.save();syncing=false;return upload()})
+  return withRetry(function(){return B.db.doc('saves/'+B.uid).get()}).then(function(s){if(s.exists)mergeCloud(s.data());return fixDays()}).then(function(){MC.save();syncing=false;return upload()})
   .catch(function(){syncing=false})}
 MC.alGuardar=scheduleUpload;
 

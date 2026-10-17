@@ -24,13 +24,15 @@ service cloud.firestore {
     match /players/{uid} {
       allow read: if true;
       allow create, update: if signedIn() && me() == uid
-        && data().keys().hasOnly(['alias', 'ph', 'played', 'won', 'streak', 'best', 'u'])
+        && data().keys().hasOnly(['alias', 'ph', 'played', 'won', 'streak', 'best', 'last', 'hw', 'u'])
         && isText(data().alias, 1, 24)
         && isPhoto(data().ph)
         && isInt(data().played, 0, today())
         && isInt(data().won, 0, data().played)
         && isInt(data().streak, 0, today())
         && isInt(data().best, 0, today())
+        && (!('last' in data()) || isInt(data().last, 0, today()))
+        && (!('hw' in data()) || isInt(data().hw, 0, 40 * data().won))
         && data().u is int;
       allow delete: if signedIn() && me() == uid;
     }
