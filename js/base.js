@@ -41,7 +41,7 @@ function loadScript(src){return new Promise(function(res,rej){var s=document.cre
 function connect(alCambiar,cambioSesion){if(alCambiar)avisar=alCambiar;if(cambioSesion)alSesion=cambioSesion;
   var cfg=window.MC_FIREBASE,ready;
   if(cfg&&cfg.apiKey)ready=window.firebase&&window.firebase.firestore?Promise.resolve():loadScript(SDK+'app-compat.js').then(function(){return Promise.all([loadScript(SDK+'auth-compat.js'),loadScript(SDK+'firestore-compat.js')])});
-  else if(isLocal()){B.local=true;cfg={apiKey:'local'};ready=(window.firebase&&window.firebase.local?Promise.resolve():loadScript('js/base-local.js?v=20261017-38')).then(function(){return loadBank().then(MC.pistasPlanas,function(){})})}
+  else if(isLocal()){B.local=true;cfg={apiKey:'local'};ready=(window.firebase&&window.firebase.local?Promise.resolve():loadScript('js/base-local.js?v=20261017-53')).then(function(){return loadBank().then(MC.pistasPlanas,function(){})})}
   else return Promise.resolve();
   return ready.then(function(){return init(cfg)},function(){return null})}
 function init(cfg){
@@ -81,9 +81,12 @@ var nameKey=function(n){return String(n||'').trim().toLowerCase()};
 var nameOk=function(n){return /^[a-z0-9_.]{3,20}$/.test(nameKey(n))};
 function nameFree(n){if(!nameOk(n))return Promise.reject({code:'name-invalid'});var k=nameKey(n);
   return B.db.doc('usernames/'+k).get().then(function(s){if(s.exists&&(!B.uid||s.data().uid!==B.uid))throw {code:'name-taken'};return k})}
-function claimName(n){var k;return nameFree(n).then(function(key){k=key;var old=store.uname;
-    return B.db.doc('usernames/'+k).set({uid:B.uid}).then(function(){if(old&&old!==k)return B.db.doc('usernames/'+old).delete().catch(function(){})})})
-  .then(function(){store.uname=k;store.alias=String(n).trim().slice(0,20);MC.save();if(B.user&&B.user.updateProfile)B.user.updateProfile({displayName:store.alias}).catch(function(){});return publish(today())})}
+// Reservar el nombre nuevo, liberar el anterior y guardarlo en el perfil van juntos (todo o nada): las reglas no dejan juntar nombres
+function claimName(n){var k,alias=String(n).trim().slice(0,20);return nameFree(n).then(function(key){k=key;var old=store.uname;
+    return withRetry(function(){var b=B.db.batch(),d=cloudDoc();d.uname=k;d.alias=alias;
+      if(old!==k)b.set(B.db.doc('usernames/'+k),{uid:B.uid});if(old&&old!==k)b.delete(B.db.doc('usernames/'+old));
+      b.set(B.db.doc('saves/'+B.uid),d);return b.commit()})})
+  .then(function(){store.uname=k;store.alias=alias;MC.save();if(B.user&&B.user.updateProfile)B.user.updateProfile({displayName:store.alias}).catch(function(){});return publish(today())})}
 // Las reglas solo aceptan publicar con un nombre reservado o el automático JugadorNNN. Si alguien se puso otro nombre
 // antes de iniciar sesión, al entrar se intenta reservar; si no se puede (tomado o inválido), vuelve a uno automático.
 function ensureAlias(){if(store.uname||/^Jugador\d{3}$/.test(store.alias))return Promise.resolve();
@@ -151,6 +154,10 @@ function fetchClues(ns){var need=MC.faltan(ns);if(!need.length)return Promise.re
     .then(function(s){var m={};s.docs.forEach(function(d){var x=d.data();if(x&&typeof x.c==='string'&&typeof x.n==='number')m[x.n]=x.c});return MC.guardarPistas(m)},function(e){try{console.warn('Cripteando, pistas:',e&&e.code||e,e&&e.message||'')}catch(x){}throw e})}
 function refreshToday(){if(!B.db)return Promise.resolve(false);var T=today();
   return withRetry(function(){return B.db.doc('pistas/'+T).get()}).then(function(s){if(!s.exists)return false;var x=s.data(),m={};if(x&&typeof x.c==='string'){m[T]=x.c;return MC.guardarPistas(m)}return false},function(){return false})}
+function quickToday(){var cfg=window.MC_FIREBASE,T=today();if(!cfg||!cfg.projectId||!window.fetch||MC.clueOf(T))return Promise.resolve(false);
+  return fetch('https://firestore.googleapis.com/v1/projects/'+encodeURIComponent(cfg.projectId)+'/databases/(default)/documents/pistas/'+T+'?key='+encodeURIComponent(cfg.apiKey||''))
+    .then(function(r){return r.ok?r.json():null}).then(function(j){var c=j&&j.fields&&j.fields.c&&j.fields.c.stringValue,m={};if(!c)return false;m[T]=c;MC.guardarPistas(m);return !!MC.clueOf(T)})
+    .catch(function(){return false})}
 function loadBank(fresh){if(!fresh&&Array.isArray(window.MC_BANCO))return Promise.resolve(window.MC_BANCO);window.MC_BANCO=null;
   return loadScript('privado/banco.js?t='+Date.now()).then(function(){if(!Array.isArray(window.MC_BANCO))throw {code:'no-bank'};return window.MC_BANCO},function(){throw {code:'no-bank'}})}
 function isAdmin(){return !!(B.uid&&(B.local||B.uid===window.MC_ADMIN))}
@@ -218,6 +225,7 @@ MC.base={
   sincronizar:syncIn,
   pistas:fetchClues,
   pistaDeHoy:refreshToday,
+  pistaRapida:quickToday,
   revisarPistas:checkEdits,
   esAdmin:isAdmin,
   subirPistas:uploadClues,

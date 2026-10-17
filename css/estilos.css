@@ -494,3 +494,12 @@ img.av{display:block;background:var(--surface-2)}
 .avote.down i{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 55%,var(--line))}
 .avote.down svg{transform:rotate(180deg)}
 @media (max-width:560px){.arow .avotes{gap:6px}.avote i{width:24px;height:24px}}
+/* Logo del header: termo y mate parados, con los colores del tema */
+.brand .mate.duo{width:40px}
+.mate .tb{fill:var(--vir)}
+.mate .tn{stroke:var(--bg);stroke-width:.4;stroke-opacity:.35}
+.mate .tl{fill:none;stroke:var(--bg);stroke-width:.5;opacity:.35}
+.mate .tc{fill:var(--ink-2)}
+.mate .th{fill:none;stroke:var(--ink-2);stroke-width:2;stroke-linecap:round}
+.mate .tp{fill:none;stroke:var(--bad);stroke-width:1.7;stroke-linecap:round}
+@media (max-width:560px){.brand .mate.duo{width:32px;height:32px}}

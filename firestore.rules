@@ -78,7 +78,10 @@ service cloud.firestore {
       allow create, update: if signedIn() && me() == uid
         && data().keys().hasOnly(['hist', 'prog', 'learn', 'votes', 'subs', 'alias', 'uname', 'photo', 'pub', 'showName', 'theme', 'u'])
         && isText(data().alias, 1, 24)
-        && isPhoto(data().photo);
+        && isPhoto(data().photo)
+        // el nombre de usuario del perfil tiene que ser uno reservado por esta cuenta
+        && (data().get('uname', '') == ''
+          || getAfter(/databases/$(database)/documents/usernames/$(data().uname)).data.uid == me());
     }
 
     match /usernames/{name} {
@@ -86,7 +89,12 @@ service cloud.firestore {
       allow create: if signedIn()
         && name.matches('^[a-z0-9_.]{3,20}$')
         && data().keys().hasOnly(['uid'])
-        && data().uid == me();
+        && data().uid == me()
+        // un solo nombre por cuenta: en la misma operación queda como nombre del perfil y el anterior se libera
+        && getAfter(/databases/$(database)/documents/saves/$(me())).data.uname == name
+        && (!exists(/databases/$(database)/documents/saves/$(me()))
+          || get(/databases/$(database)/documents/saves/$(me())).data.get('uname', '') in ['', name]
+          || !existsAfter(/databases/$(database)/documents/usernames/$(get(/databases/$(database)/documents/saves/$(me())).data.uname)));
       allow delete: if signedIn() && resource.data.uid == me();
     }
 

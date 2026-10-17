@@ -62,29 +62,39 @@ Las reglas deciden quién puede leer y escribir cada cosa. Sin ellas, cualquiera
 2. Borrá todo lo que haya y pegá el contenido completo del archivo `firestore.rules` de este proyecto.
 3. Tocá **Publicar**.
 
+> **Cada vez que cambie `firestore.rules`, hay que volver a pegarlo y publicarlo, y conviene hacerlo antes del push.** Las reglas no se suben con GitHub: viven en Firebase. Si la página nueva sale con reglas viejas, Firebase rechaza datos que la página nueva manda (por ejemplo, la clasificación deja de actualizarse).
+
 Qué protegen, en resumen:
 
 | Datos | Quién puede leer | Quién puede escribir |
 |---|---|---|
-| Clasificación (`players`, `results`) | Todos | Solo cada jugador, lo suyo. Los resultados son solo de la pista del día, y una vez publicados no se pueden cambiar los intentos ni las ayudas |
+| Clasificación (`players`, `results`) | Todos | Solo cada jugador, lo suyo. El nombre tiene que ser su nombre de usuario reservado o el automático `JugadorNNN`. Los números tienen que ser coherentes (la racha no puede pasar la mejor racha, ni esta las resueltas). Los resultados son solo de la pista del día, y una vez publicados no se pueden cambiar los intentos ni las ayudas |
 | Progreso en la nube (`saves`) | Solo su dueño | Solo su dueño |
-| Nombres de usuario (`usernames`) | Todos, para saber si están ocupados | Cada uno reserva el suyo. Nadie puede quitarle el nombre a otro |
-| Grupos (`groups`, `members`) | Todos | El dueño cambia el grupo. Cada integrante maneja solo su propia membresía |
-| Votos (`votes`) | Todos | Uno por jugador y por pista |
+| Nombres de usuario (`usernames`) | Todos, para saber si están ocupados | Uno por cuenta: al reservar uno nuevo, el anterior se libera en la misma operación. Nadie puede quitarle el nombre a otro |
+| Grupos (`groups`, `members`) | Todos | El dueño solo puede cambiar el nombre del grupo. Cada integrante maneja solo su propia membresía |
+| Votos (`votes`) | Todos | Uno por jugador y por pista. Cada uno puede borrar los suyos |
+| Ediciones de pistas (`meta/pistas`) | Todos | Solo vos. Anota qué pista editaste, para que los navegadores que ya la tenían guardada la vuelvan a pedir |
 | Pistas enviadas (`submissions`) y comentarios (`feedback`) | Nadie desde la página: solo vos, desde la consola | Cualquiera con sesión iniciada, con límites de largo |
 
-## 6. Subir los cambios
+## 6. Cómo se publica la página
 
-En la Terminal:
+La página no se publica tal como está en la carpeta: en cada `git push`, **GitHub Actions** la compila y publica el resultado. La compilación (`build.js`, con `npm run build`) junta todos los JS en un solo archivo comprimido y hace lo mismo con el CSS. Les pone un nombre con huella (`app.3f9a2c1e.js`) para que los navegadores los guarden hasta que cambien, y arma el service worker que permite instalar la app.
+
+**Una sola vez:** en GitHub, en el repositorio, entrá a **Settings → Pages → Build and deployment → Source** y elegí **GitHub Actions**.
+
+Después, para publicar, desde la carpeta del proyecto:
 
 ```
-cd ~/Documents/Claude-Code/cripteando
 git add -A
-git commit -m "Conectar Firebase"
+git commit -m "Lo que cambiaste"
 git push
 ```
 
-En uno o dos minutos, GitHub Pages actualiza la página.
+En la pestaña **Actions** del repositorio vas a ver correr **Publicar**. Cuando termina en verde (un minuto, más o menos), la página ya está actualizada. Si falla, ahí mismo se ve el error.
+
+**En la compu se trabaja con los archivos sueltos**, sin compilar: abrí la página en localhost como siempre. Si querés ver la versión compilada antes de subirla, corré `npm install` una vez y después `npm run build`: queda en la carpeta `dist/`, que no se sube.
+
+> **El código del repositorio es público**, aunque la página publicada lo muestre comprimido. Lo que protege los datos son las reglas de Firestore, no esconder el código.
 
 ## 7. Probar que todo funcione
 
@@ -94,11 +104,13 @@ En <https://awaddda.github.io/cripteando/>:
 - [ ] Cerrar sesión y volver a entrar con esa contraseña.
 - [ ] Probar "¿Olvidaste tu contraseña?" y que llegue el email (revisá el correo no deseado).
 - [ ] Entrar con Google desde otra pestaña privada o desde el celular.
-- [ ] Resolver la pista de hoy y verla en **Clasificación → Hoy**.
+- [ ] Resolver la pista de hoy y aparecer en **Clasificación → Rachas** (y en **Menos ayudas** después de 3 pistas resueltas).
 - [ ] Subir una foto de perfil y verla en la clasificación.
 - [ ] Crear un grupo, copiar el código y unirse desde la otra cuenta.
 - [ ] En el celular, entrar con la misma cuenta y ver la misma racha.
 - [ ] Mandar una pista desde **Enviar** y un comentario desde **Cuenta**.
+- [ ] En el celular, instalar la app desde **Cuenta → Instalar la app** (en iPhone: Compartir → Agregar a inicio) y abrirla sin internet.
+- [ ] Pegar el link en WhatsApp y ver la imagen de vista previa (con un link que no hayas compartido antes: WhatsApp guarda las vistas previas varios días).
 
 Si algo no anda, abrí la consola del navegador (clic derecho → Inspeccionar → Consola) y mandame lo que aparezca en rojo.
 
@@ -110,11 +122,15 @@ Todo se hace desde la página, con tu cuenta: **Cuenta → Administración → A
 - **Nueva pista:** se agrega al final, en el día siguiente a la última programada. El editor verifica solo los anagramas, las palabras ocultas, las lecturas al revés y las iniciales, y muestra una vista previa como la ven los jugadores.
 - **Editar:** tocá cualquier pista de la lista. Si ya salió, ojo: cambiar la respuesta borra el progreso de quienes la jugaron.
 - **Borrar:** solo las que todavía no salieron. Ese día queda sin pista hasta que cargues otra.
-- **Pistas enviadas:** con **Pasar al editor** la convertís en la próxima pista. Al guardarla queda marcada como aceptada. También podés rechazarla.
+- **Quién la escribió:** cada pista puede decir «Pista de Cripteando», «Pista enviada por…» o «Pista enviada de forma anónima».
+- **Votos:** en la lista y arriba del editor ves cuántos «Me gustó» y «No me gustó» tuvo cada pista.
+- **Pistas enviadas:** con **Pasar al editor** la convertís en la próxima pista, con el autor ya completado. Al guardarla queda marcada como aceptada. También podés rechazarla. Al lado de cada envío figura la cuenta que lo mandó: el nombre lo escribe el jugador, la cuenta no se puede falsear.
 - **Comentarios:** se leen en la misma pantalla.
 - **Descargar copia:** baja un `banco.js` con todas las pistas. Guardalo en Drive cada tanto: es tu respaldo.
 
-Las pistas viven en Firestore, codificadas. Las reglas solo dejan leer la de hoy y las anteriores, salvo a tu cuenta.
+Las pistas viven en Firestore, codificadas. Las reglas solo dejan leer la de hoy y las anteriores, salvo a tu cuenta. Si corregís una pista que ya salió, los navegadores que la tenían guardada la vuelven a pedir la próxima vez que entran.
+
+> **Fijate siempre cuántos días quedan programados** (el panel lo muestra arriba). Si un día no hay pista, la página muestra «La pista de hoy todavía no está lista».
 
 ### Ver quién se registró
 **Authentication → Usuarios**. Desde ahí también podés deshabilitar o borrar una cuenta.
@@ -127,6 +143,8 @@ Para ver el consumo: **Firestore Database → Uso**. Si te acercás al límite, 
 
 ## 10. Lo que todavía no protege nadie
 
-Los resultados se calculan en el navegador del jugador. Las reglas impiden publicar resultados de otro día o cambiarlos después, pero alguien que sepa programar podría publicar "lo resolví al primer intento" sin haberlo jugado.
+Los resultados se calculan en el navegador del jugador. Las reglas impiden publicar resultados de otro día, cambiarlos después, usar el nombre de otro o escribir números incoherentes. Pero alguien que sepa programar podría publicar "lo resolví al primer intento" sin haberlo jugado, o sumarse pistas resueltas de a una por día.
+
+La respuesta de la pista del día también está en el navegador (codificada, pero no cifrada): alguien que sepa puede verla. Es así en todos los juegos de este tipo que no tienen servidor.
 
 Evitarlo requiere que un servidor verifique la respuesta (Cloud Functions, que necesita el plan Blaze). Para una página entre amigos y conocidos, no suele hacer falta.

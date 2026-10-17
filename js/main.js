@@ -36,7 +36,14 @@ function need(ns){if(!MC.base.conectada())return;ns=MC.faltan(ns).filter(functio
 function allDays(){var o=[];for(var n=1;n<=today();n++)o.push(n);return o}
 // Pantalla de bienvenida: se va cuando la pista de hoy está lista (o falló), pero queda al menos SPLASH ms para que se vea el mate
 var SPLASH=2460; // desde que arranca la animación: el vapor está en su punto (2,11 s) y 0,35 s más
-function hideSplash(){var el=document.getElementById('splash');if(!el||el.className.indexOf('out')>-1)return;el.className+=' out';
+// La pantalla de carga también espera las tipografías (así no se ve el cambio de letra), con tope de 2,5 s por si Google Fonts tarda
+var fontsOk=!(window.document&&document.fonts&&document.fonts.load),splashWanted=false;
+(function(){if(fontsOk)return;var done=function(){if(fontsOk)return;fontsOk=true;if(splashWanted)hideSplash()},t0=Date.now();
+  setTimeout(done,Math.max(0,2500-(window.performance?performance.now()-(window.MC_T0||0):0)));
+  (function wait(){var l=document.querySelector('link[href*="fonts.googleapis.com/css2"][rel="stylesheet"]');
+    if(!(l&&l.sheet)){if(Date.now()-t0<2500)setTimeout(wait,50);return}
+    Promise.all(['500 16px Figtree','700 16px Figtree','400 42px Newsreader','400 16px "DM Mono"'].map(function(f){return document.fonts.load(f)})).then(done,done)})()})();
+function hideSplash(){if(!fontsOk){splashWanted=true;return}var el=document.getElementById('splash');if(!el||el.className.indexOf('out')>-1)return;el.className+=' out';
   setTimeout(function(){el.className+=' go';replayEnd();setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},450)},Math.max(0,SPLASH-(window.performance?performance.now()-(window.MC_T0||0):0)))}
 // Al entrar con la pista ya terminada, repite la animación del final (letras, partes y resultado) mientras se va la pantalla de carga
 function replayEnd(){if(S.view!=='hoy'||editing()||!MC.clueOf(S.cur)||!MC.prog(S.cur).done)return;S.fresh='end';render()}
@@ -175,6 +182,8 @@ MC.load();applyTheme();
   try{history.replaceState({v:S.view,n:S.cur},'',urlOf(S.view)+location.hash)}catch(e){}})();
 if(!MC.clueOf(S.cur))S.pz='cargando';
 render();
+// Primera visita: la pista de hoy por el camino corto, sin esperar a que se descargue y arranque Firebase
+if(!MC.clueOf(S.cur))MC.base.pistaRapida().then(function(ok){if(ok&&S.pz==='cargando'){S.pz='listo';if(!editing())render()}});
 MC.base.conectar(refreshLive,function(){S.amsg='';S.am=null;S.adm=null;S.ae=null;applyTheme();if(editing()&&S.view!=='cuenta')refreshLive();else render()}).then(function(){
   var mine=Object.keys(store.hist).map(Number).concat([today()]);
   var go2=function(){if(!editing())render();else refreshLive()};

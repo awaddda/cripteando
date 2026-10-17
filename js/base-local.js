@@ -68,6 +68,8 @@ user=mkUser(AU.current&&AU.accounts[AU.current]);
 var GoogleAuthProvider=function(){};
 window.firebase={apps:[],local:true,
   initializeApp:function(){this.apps.push({})},
-  firestore:function(){return {doc:doc,collection:function(n){return query(n)}}},
+  firestore:function(){return {doc:doc,collection:function(n){return query(n)},
+    batch:function(){var ops=[];return {set:function(r,d){ops.push(function(){return r.set(d)});return this},delete:function(r){ops.push(function(){return r.delete()});return this},
+      commit:function(){return ops.reduce(function(p,f){return p.then(f)},Promise.resolve())}}}}},
   auth:Object.assign(function(){return auth},{GoogleAuthProvider:GoogleAuthProvider})};
 })();
