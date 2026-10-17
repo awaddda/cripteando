@@ -463,21 +463,25 @@ img.av{display:block;background:var(--surface-2)}
 .splash.out.go{background-color:transparent;pointer-events:none;transition:background-color .35s ease}
 .splash.out.go .ld-mate{opacity:0;transition:opacity .25s ease .12s}
 @media (prefers-reduced-motion:reduce){.splash.out.go,.splash.out.go .ld-mate{transition:none}}
-/* En el celular el nav muestra solo íconos; la sección actual también lleva su nombre. Los nombres ocultos siguen para lectores de pantalla */
+/* Nav en el celular: arriba el logo y Cuenta (sola a la derecha); abajo las 7 secciones en una cápsula de partes iguales.
+   La sección actual se ensancha y muestra su nombre; las demás quedan con el ícono. Los nombres plegados siguen para lectores de pantalla */
 @media (max-width:560px){
-  .bar .wrap{padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
-  nav{gap:0}.nav-mid{gap:0}
-  .tab{padding:9px 7px;font-size:14px;gap:0}
-  /* el nombre se despliega y la burbuja aparece con un pop; los demás íconos se corren solos. Los nombres plegados siguen para lectores de pantalla */
-  /* el nombre anterior se pliega rápido y el nuevo se despliega apenas después: nunca están los dos abiertos, así Cuenta no se corre */
-  .tab span{display:inline-block;max-width:0;opacity:0;overflow:hidden;margin-left:0;transition:max-width .22s cubic-bezier(.4,0,.2,1),opacity .15s ease,margin-left .22s cubic-bezier(.4,0,.2,1)}
-  .tab[aria-current="page"] span{max-width:100px;opacity:1;margin-left:6px;transition:max-width .45s cubic-bezier(.3,.7,.3,1) .12s,opacity .3s ease .2s,margin-left .45s cubic-bezier(.3,.7,.3,1) .12s}
-  .tab[aria-current="page"]{animation:nav-pop .5s cubic-bezier(.3,1.2,.5,1)}
+  .bar .wrap{position:relative;align-items:stretch;gap:8px;padding:8px max(10px,env(safe-area-inset-right,0px)) 10px max(10px,env(safe-area-inset-left,0px))}
+  .brand{align-self:flex-start;gap:9px;padding:4px 2px}
+  .brand .mate{width:30px;height:30px}
+  .brand .nm{font-size:19px}
+  nav{display:block;width:100%;overflow:visible}
+  .nav-mid{display:flex;width:100%;gap:0;padding:4px;border:1px solid var(--line);border-radius:999px;background:var(--surface)}
   .sep{display:none}
-  nav>.tab[data-v="cuenta"]{margin-left:4px}
+  .tab{gap:0;justify-content:center;padding:9px 0;font-size:14px}
+  .nav-mid .tab{flex:1 1 0;min-width:0;transition:flex-grow .45s cubic-bezier(.3,.7,.3,1),color .22s ease,background-color .22s ease}
+  .nav-mid .tab[aria-current="page"]{flex-grow:2.6}
+  .tab span{display:inline-block;max-width:0;opacity:0;overflow:hidden;margin-left:0;transition:max-width .22s cubic-bezier(.4,0,.2,1),opacity .15s ease,margin-left .22s cubic-bezier(.4,0,.2,1)}
+  .tab[aria-current="page"] span{max-width:100px;opacity:1;margin-left:6px;transition:max-width .45s cubic-bezier(.3,.7,.3,1) .1s,opacity .3s ease .18s,margin-left .45s cubic-bezier(.3,.7,.3,1) .1s}
+  /* Cuenta: arriba a la derecha, a la altura del logo; muestra su nombre solo cuando estás ahí */
+  nav>.tab[data-v="cuenta"]{position:absolute;top:8px;right:max(10px,env(safe-area-inset-right,0px));margin:0;padding:8px 10px}
 }
-@keyframes nav-pop{from{transform:scale(.92)}}
-@media (prefers-reduced-motion:reduce){.tab span,.tab[aria-current="page"] span{transition:none}.tab[aria-current="page"]{animation:none}}
+@media (prefers-reduced-motion:reduce){.tab span,.tab[aria-current="page"] span,.nav-mid .tab{transition:none}}
 .arow .st{min-width:96px;text-align:center}
 /* Votos de cada pista en el panel de admin: circulitos como las letras, con el pulgar y el contador */
 .avotes{display:inline-flex;align-items:center;gap:10px;flex:none}
