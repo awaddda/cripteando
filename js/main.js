@@ -37,9 +37,9 @@ function render(){
 function go(v,n){if(n==='today')n=today();var prev=S.cur;if(n)S.cur=n;if(v==='aprender')S.learn=null;S.view=v;
   if(n&&n!==prev){S.typed='';S.msg=''}
   S.confirm='';mark(v);render();window.scrollTo(0,0)}
-// Cada sección tiene su ruta: BASE es Hoy, BASE+'APRENDER' es Aprender, etc.
+// Cada sección tiene su ruta: BASE es Hoy, BASE+'aprender' es Aprender, etc.
 function isView(v){return v==='admin'||VIEWS.some(function(x){return x[0]===v})}
-function urlOf(v){return location.protocol==='file:'?location.pathname:BASE+(v==='hoy'?'':v.toUpperCase())}
+function urlOf(v){return location.protocol==='file:'?location.pathname:BASE+(v==='hoy'?'':v)}
 function viewOf(p){var lp=p.toLowerCase(),lb=BASE.toLowerCase(),s;
   if(lp.indexOf(lb)===0)s=lp.slice(lb.length);else if(lp+'/'===lb)s='';else return null;
   s=decodeURIComponent(s).replace(/^index\.html$/,'').replace(/\/+$/,'');
@@ -136,7 +136,7 @@ setInterval(function(){var n=today();
   var el=$('#cd');if(el)el.textContent=MC.countdown()},1000);
 
 MC.load();applyTheme();
-// 404.html manda las rutas que GitHub Pages no conoce como ?r=APRENDER
+// 404.html manda las rutas que GitHub Pages no conoce como ?r=aprender
 (function(){var r=null;try{r=new URLSearchParams(location.search).get('r')}catch(e){}
   S.view=viewOf(r!==null?BASE+r:location.pathname)||'hoy';
   try{history.replaceState({v:S.view,n:S.cur},'',urlOf(S.view)+location.hash)}catch(e){}})();
