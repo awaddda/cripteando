@@ -467,7 +467,8 @@ img.av{display:block;background:var(--surface-2)}
 /* Nav en el celular: arriba el logo y Cuenta (sola a la derecha); abajo las 7 secciones en una cápsula de partes iguales.
    La sección actual se ensancha y muestra su nombre; las demás quedan con el ícono. Los nombres plegados siguen para lectores de pantalla */
 @media (max-width:560px){
-  .bar{padding-top:env(safe-area-inset-top,0px)}
+  /* debajo de la barra de estado del iPhone, más 16px porque el desenfoque de iOS baja un poco más; sin barra de estado no suma nada */
+  .bar{padding-top:calc(env(safe-area-inset-top,0px) + min(16px,env(safe-area-inset-top,0px)))}
   .bar .wrap{position:relative;align-items:stretch;gap:8px;padding:12px max(10px,env(safe-area-inset-right,0px)) 10px max(10px,env(safe-area-inset-left,0px))}
   .brand{align-self:flex-start;gap:9px;padding:4px 2px}
   .brand .mate{width:30px;height:30px}
