@@ -36,7 +36,7 @@ fs.writeFileSync(path.join(OUT, 'index.html'), html);
 fs.cpSync(path.join(ROOT, 'img'), path.join(OUT, 'img'), { recursive: true });
 
 // Service worker con la versión de esta compilación y los archivos para usar sin internet
-const precache = ['./', jsName, cssName, 'favicon.svg', 'manifest.webmanifest', 'img/icono-192-v2.png', 'img/icono-512-v2.png'];
+const precache = ['./', jsName, cssName, 'favicon.svg', 'manifest.webmanifest', 'img/icono-192-v3.png', 'img/icono-512-v3.png'];
 const sw = read('sw.js').replace("/*VERSION*/'dev'", JSON.stringify('cripteando-' + huella(js + css))).replace('/*PRECACHE*/[]', JSON.stringify(precache));
 if (sw.includes("'dev'") || sw.includes('/*PRECACHE*/')) throw new Error('No pude completar sw.js');
 fs.writeFileSync(path.join(OUT, 'sw.js'), esbuild.transformSync(sw, { minify: true, target: 'es2017' }).code);
