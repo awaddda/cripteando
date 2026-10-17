@@ -34,7 +34,9 @@ function render(){
 }
 function go(v,n){if(n==='today')n=today();var prev=S.cur;if(n)S.cur=n;if(v==='aprender')S.learn=null;S.view=v;
   if(n&&n!==prev){S.typed='';S.msg=''}
-  S.confirm='';try{history.replaceState(null,'','#'+v)}catch(e){try{location.hash=v}catch(e2){}}render();window.scrollTo(0,0)}
+  S.confirm='';mark(v);render();window.scrollTo(0,0)}
+function here(){return location.pathname+location.search}
+function mark(v){try{var st=history.state;if(!(st&&st.v===v&&st.n===S.cur))history.pushState({v:v,n:S.cur},'',here())}catch(e){}}
 
 function refreshLive(){if(S.view==='clasificacion')$('#main').innerHTML=MC.vRank();else if(S.view==='grupos')MC.liveGroups()}
 MC.render=render;
@@ -56,7 +58,7 @@ document.addEventListener('click',function(e){var t=e.target.closest('[data-act]
   else if(a==='showname'){store.showName=t.checked;save()}
   else if(a==='delacc'){S.confirm='delacc';S.dmsg='';render()}
   else if(a==='delacc-yes'){t.disabled=true;MC.base.eliminarCuenta().then(function(){S.confirm='';S.dmsg='';render()}).catch(function(err){S.dmsg='No pude eliminar la cuenta: '+MC.base.motivo(err);render()})}
-  else if(a==='lguia-go'){S.view='aprender';S.learn='guia';try{history.replaceState(null,'','#aprender')}catch(e2){}render();window.scrollTo(0,0)}
+  else if(a==='lguia-go'){S.view='aprender';S.learn='guia';mark('aprender');render();window.scrollTo(0,0)}
   else if(/^(stab|smech|srole|sword|sextra|sxdel)$/.test(a))MC.clickSend(a,t);
   else if(a==='lopen')MC.learnOpen(t.dataset.l);
   else if(a==='lhub'){S.learn=null;render();window.scrollTo(0,0)}
@@ -107,7 +109,7 @@ function say(id,t,cls){var m=$('#'+id);if(m){m.textContent=t;m.className='msg '+
 document.addEventListener('change',function(e){if(e.target.id!=='a-photo'||!e.target.files||!e.target.files[0])return;
   say('p-out','Subiendo foto…','ok');MC.readPhoto(e.target.files[0]).then(function(d){return MC.base.cambiarFoto(d)}).then(function(){render()})
   .catch(function(err){say('p-out',err&&err.code==='photo-type'?'Elegí un archivo de imagen.':(err&&err.code==='photo-size'?'La imagen es muy pesada: elegí una de menos de 15 MB.':'No pude usar esa imagen. Probá con otra.'))})});
-window.addEventListener('hashchange',function(){var v=location.hash.slice(1);if(VIEWS.some(function(x){return x[0]===v})&&v!==S.view){S.view=v;render()}});
+window.addEventListener('popstate',function(e){var st=e.state||{};S.view=VIEWS.some(function(x){return x[0]===st.v})?st.v:'hoy';var n=st.n||today();if(n!==S.cur){S.cur=n;S.typed='';S.msg=''}S.confirm='';render();window.scrollTo(0,0)});
 
 window.addEventListener('storage',function(e){if(e.key==='mc_v1'&&!editing()){MC.load();applyTheme();render()}});
 function applyTheme(){var r=document.documentElement;if(store.theme)r.setAttribute('data-theme',store.theme);else r.removeAttribute('data-theme')}
@@ -123,7 +125,7 @@ setInterval(function(){var n=today();
   var el=$('#cd');if(el)el.textContent=MC.countdown()},1000);
 
 MC.load();applyTheme();
-var h0=(location.hash||'').slice(1);if(VIEWS.some(function(x){return x[0]===h0}))S.view=h0;
+try{history.replaceState({v:'hoy',n:S.cur},'',here())}catch(e){}
 if(!MC.clueOf(S.cur))S.pz='cargando';
 render();
 MC.base.conectar(refreshLive,function(){S.amsg='';S.am=null;applyTheme();if(editing()&&S.view!=='cuenta')refreshLive();else render()}).then(function(){
