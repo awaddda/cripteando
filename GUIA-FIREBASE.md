@@ -78,7 +78,7 @@ Qué protegen, en resumen:
 En la Terminal:
 
 ```
-cd ~/Documents/Claude-Code/mate-criptico
+cd ~/Documents/Claude-Code/cripteando
 git add -A
 git commit -m "Conectar Firebase"
 git push
