@@ -104,39 +104,17 @@ Si algo no anda, abrí la consola del navegador (clic derecho → Inspeccionar �
 
 ## 8. El día a día
 
-### Revisar las pistas que te mandan
-**Firestore Database → Datos → `submissions`**. Cada documento trae:
+### Administrar las pistas
+Todo se hace desde la página, con tu cuenta: **Cuenta → Administración → Administrar pistas**. Funciona desde cualquier compu o celular.
 
-- `text`: el enunciado.
-- `answer`: la respuesta.
-- `mechs`: los tipos de juego.
-- `seg`: el desglose por partes, en el mismo formato que las pistas del día.
-- `exp`: la explicación.
-- `hd`, `hi` y `hm`: las ayudas de definición, indicador y relleno.
-- `pub`: si quiere que se muestre su nombre, y en ese caso `al` es el nombre.
-- `notes`: las notas para quien revisa.
+- **Nueva pista:** se agrega al final, en el día siguiente a la última programada. El editor verifica solo los anagramas, las palabras ocultas, las lecturas al revés y las iniciales, y muestra una vista previa como la ven los jugadores.
+- **Editar:** tocá cualquier pista de la lista. Si ya salió, ojo: cambiar la respuesta borra el progreso de quienes la jugaron.
+- **Borrar:** solo las que todavía no salieron. Ese día queda sin pista hasta que cargues otra.
+- **Pistas enviadas:** con **Pasar al editor** la convertís en la próxima pista. Al guardarla queda marcada como aceptada. También podés rechazarla.
+- **Comentarios:** se leen en la misma pantalla.
+- **Descargar copia:** baja un `banco.js` con todas las pistas. Guardalo en Drive cada tanto: es tu respaldo.
 
-Para publicar una, verificala letra por letra y agregala **al final** de `privado/banco.js`, con estos campos:
-
-- `a`: la respuesta.
-- `m`: el mecanismo.
-- `t`: lo que vino en `seg`.
-- `ex`: la explicación.
-- `ik`: qué pide el indicador, por ejemplo `'un anagrama'`.
-
-Después cambiá `st` a `aceptada` o `rechazada` para llevar la cuenta.
-
-### Subir pistas nuevas
-Las pistas no están en el código público: viven en `privado/banco.js`, que git no sube, y en Firestore, en la colección `pistas`. Las reglas solo dejan leer la de hoy y las anteriores.
-
-1. Agregá las pistas nuevas al final de `privado/banco.js`. La pista número 1 es la del 16 de octubre de 2026, la 2 la del 17, y así.
-2. En la Terminal: `cd ~/Documents/Claude-Code/mate-criptico` y `python3 -m http.server 8000`.
-3. Entrá a <http://localhost:8000>, iniciá sesión con tu cuenta y, en **Cuenta → Administración**, tocá **Subir pistas**.
-
-Guardá una copia de `privado/banco.js` fuera de la compu, por ejemplo en Google Drive: es el único lugar donde están las pistas sin codificar.
-
-### Leer los comentarios
-**Firestore Database → Datos → `feedback`**.
+Las pistas viven en Firestore, codificadas. Las reglas solo dejan leer la de hoy y las anteriores, salvo a tu cuenta.
 
 ### Ver quién se registró
 **Authentication → Usuarios**. Desde ahí también podés deshabilitar o borrar una cuenta.

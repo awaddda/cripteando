@@ -8,11 +8,13 @@ service cloud.firestore {
     function isInt(x, lo, hi) { return x is int && x >= lo && x <= hi; }
     function isText(x, lo, hi) { return x is string && x.size() >= lo && x.size() <= hi; }
     function data() { return request.resource.data; }
+    function isAdmin() { return signedIn() && me() == 'wfHwW9wNrVQWrkWJEgL0qLmMTap2'; }
     function isPhoto(x) { return x is string && (x == '' || (x.size() < 40000 && x.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$'))); }
 
     match /pistas/{id} {
-      allow read: if resource.data.n <= today();
-      allow write: if signedIn() && me() == 'wfHwW9wNrVQWrkWJEgL0qLmMTap2'
+      allow read: if resource.data.n <= today() || isAdmin();
+      allow delete: if isAdmin();
+      allow create, update: if isAdmin()
         && id == string(data().n)
         && data().keys().hasOnly(['n', 'c'])
         && isInt(data().n, 1, 100000)
@@ -121,7 +123,10 @@ service cloud.firestore {
         && isText(data().hm, 0, 300)
         && isText(data().extra, 2, 1200)
         && isText(data().notes, 0, 400);
-      allow read, update, delete: if false;
+      allow read, delete: if isAdmin();
+      allow update: if isAdmin()
+        && data().diff(resource.data).affectedKeys().hasOnly(['st'])
+        && data().st in ['pendiente', 'aceptada', 'rechazada'];
     }
 
     match /feedback/{id} {
@@ -131,7 +136,8 @@ service cloud.firestore {
         && isText(data().al, 0, 24)
         && isText(data().kind, 1, 40)
         && isText(data().msg, 5, 1000);
-      allow read, update, delete: if false;
+      allow read, delete: if isAdmin();
+      allow update: if false;
     }
   }
 }

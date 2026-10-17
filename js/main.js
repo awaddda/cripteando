@@ -24,13 +24,14 @@ function allDays(){var o=[];for(var n=1;n<=today();n++)o.push(n);return o}
 function render(){
   if(S.pz!=='cargando'){if(S.view==='archivo'&&!allAsked){allAsked=true;need(allDays())}else if(S.view==='hoy'&&!MC.clueOf(S.cur))need([S.cur])}
   renderNav();
-  var f={hoy:MC.vHoy,archivo:MC.vArchivo,aprender:MC.vAprender,estadisticas:MC.vStats,clasificacion:MC.vRank,grupos:MC.vGroups,enviar:MC.vSend,cuenta:MC.vAccount}[S.view]||MC.vHoy;
+  var f={hoy:MC.vHoy,archivo:MC.vArchivo,aprender:MC.vAprender,estadisticas:MC.vStats,clasificacion:MC.vRank,grupos:MC.vGroups,enviar:MC.vSend,cuenta:MC.vAccount,admin:MC.vAdmin}[S.view]||MC.vHoy;
   $('#main').innerHTML=f();
   if(S.view==='hoy'){var i=$('#guess');if(i){i.value=S.typed;if(window.matchMedia&&matchMedia('(pointer:fine)').matches)i.focus()}}
   if(S.view==='aprender'){var li=$('#lguess');if(li){li.value=S.ltyped;if(window.matchMedia&&matchMedia('(pointer:fine)').matches)li.focus()}}
   if(S.view==='clasificacion'||S.view==='grupos')MC.base.escuchar();
   if(S.view==='grupos')MC.liveGroups();
   if(S.view==='enviar')MC.checkSend();
+  if(S.view==='admin'&&MC.base.esAdmin()&&(!S.adm||!S.adm.st))MC.adminLoad();
 }
 function go(v,n){if(n==='today')n=today();var prev=S.cur;if(n)S.cur=n;if(v==='aprender')S.learn=null;S.view=v;
   if(n&&n!==prev){S.typed='';S.msg=''}
@@ -60,6 +61,7 @@ document.addEventListener('click',function(e){var t=e.target.closest('[data-act]
   else if(a==='delacc-yes'){t.disabled=true;MC.base.eliminarCuenta().then(function(){S.confirm='';S.dmsg='';render()}).catch(function(err){S.dmsg='No pude eliminar la cuenta: '+MC.base.motivo(err);render()})}
   else if(a==='lguia-go'){S.view='aprender';S.learn='guia';mark('aprender');render();window.scrollTo(0,0)}
   else if(/^(stab|smech|srole|sword|sextra|sxdel)$/.test(a))MC.clickSend(a,t);
+  else if(/^(anew|aedit|aback|arole|aword|adel|adel-no|adel-yes|aexport|asub|ast)$/.test(a))MC.adminClick(a,t);
   else if(a==='lopen')MC.learnOpen(t.dataset.l);
   else if(a==='lhub'){S.learn=null;render();window.scrollTo(0,0)}
   else if(a==='lguia'){S.learn='guia';render();window.scrollTo(0,0)}
@@ -77,7 +79,7 @@ document.addEventListener('click',function(e){var t=e.target.closest('[data-act]
   else if(a==='leave')MC.leaveGroup(t.dataset.c);
   else if(a==='atab'){S.atab=t.dataset.v;S.am=null;render()}
   else if(a==='nophoto'){MC.base.cambiarFoto('');render()}
-  else if(a==='upclues'){t.disabled=true;S.am={id:'ad-out',t:'Subiendo pistas…',cls:'ok'};render();MC.base.subirPistas().then(function(n){S.am={id:'ad-out',t:'Listo: subí '+n+' pistas.',cls:'ok'};render()}).catch(function(err){S.am={id:'ad-out',t:MC.base.motivoSesion(err),cls:'bad'};render()})}
+  else if(a==='upclues'){t.disabled=true;S.am={id:'ad-out',t:'Subiendo pistas…',cls:'ok'};render();MC.base.subirPistas().then(function(n){S.am={id:'ad-out',t:'Listo: subí '+n+' pistas.',cls:'ok'};if(S.adm)S.adm.st='';render()}).catch(function(err){S.am={id:'ad-out',t:MC.base.motivoSesion(err),cls:'bad'};render()})}
   else if(a==='reset'){S.confirm='reset';render()}
   else if(a==='reset-yes'){store.hist={};store.prog={};store.subs=[];store.learn={};store.votes={};S.confirm='';S.typed='';save();MC.base.publicar(today());render()}
 });
@@ -85,12 +87,14 @@ document.addEventListener('input',function(e){
   if(e.target.id==='a-alias'){var sv=$('#a-save');if(sv)sv.disabled=!e.target.value.trim()||e.target.value.trim().slice(0,20)===store.alias;return}
   if(e.target.id==='guess'){if(!clueOf(S.cur))return;var v=norm(e.target.value),len=MC.freeOf(clueOf(S.cur),MC.prog(S.cur)).length,prev=S.typed.length;S.typed=v.slice(0,len);if(e.target.value!==S.typed)e.target.value=S.typed;MC.paintCells(S.typed.length>prev?S.typed.length-1:-1);if(S.msg)MC.setMsg('')}
   else if(e.target.id==='lguess'){var lv=norm(e.target.value),ll=MC.learnLen(),lp=S.ltyped.length;S.ltyped=lv.slice(0,ll);if(e.target.value!==S.ltyped)e.target.value=S.ltyped;MC.paintLearn(S.ltyped.length>lp?S.ltyped.length-1:-1);if(S.lmsg){S.lmsg='';var lm=$('#lmsg');if(lm)lm.textContent=''}}
+  else if(e.target.closest&&e.target.closest('#f-adm'))MC.adminInput(e.target);
   else if(e.target.closest&&e.target.closest('#f-send')){if(e.target.id==='s-text')MC.sendParts();MC.checkSend();MC.sendAutosave()}});
 document.addEventListener('keydown',function(e){if(e.key!=='Enter')return;
   if(e.target.id==='guess'){e.preventDefault();MC.check()}else if(e.target.id==='lguess'){e.preventDefault();MC.learnCheck()}});
 document.addEventListener('animationend',function(e){if(e.target.id==='cells'||e.target.id==='lcells')e.target.classList.remove('shake')});
 document.addEventListener('submit',function(e){e.preventDefault();var id=e.target.id;
-  if(id==='f-create')MC.createGroup();else if(id==='f-join')MC.joinGroup();else if(id==='f-send')MC.sendClue();
+  if(id==='f-adm')MC.adminSave();
+  else if(id==='f-create')MC.createGroup();else if(id==='f-join')MC.joinGroup();else if(id==='f-send')MC.sendClue();
   else if(id==='f-fb'){var k=$('#fb-kind').value,msg=($('#fb-msg').value||'').trim(),out=$('#fb-out');if(msg.length<5){if(out){out.textContent='Contanos un poco más: el mensaje es muy corto.';out.className='msg bad'}return}
     MC.base.enviarComentario(k,msg).then(function(){$('#fb-msg').value='';if($('#fb-out')){$('#fb-out').textContent='Gracias, lo leemos todo.';$('#fb-out').className='msg ok'}}).catch(function(err){if($('#fb-out')){$('#fb-out').textContent='No pude enviarlo: '+MC.base.motivo(err);$('#fb-out').className='msg bad'}})}
   else if(id==='f-login'){var le=$('#l-email').value,lp=$('#l-pass').value;if(!le||!lp)return say('a-out','Escribí tu email y tu contraseña.');
@@ -109,7 +113,7 @@ function say(id,t,cls){var m=$('#'+id);if(m){m.textContent=t;m.className='msg '+
 document.addEventListener('change',function(e){if(e.target.id!=='a-photo'||!e.target.files||!e.target.files[0])return;
   say('p-out','Subiendo foto…','ok');MC.readPhoto(e.target.files[0]).then(function(d){return MC.base.cambiarFoto(d)}).then(function(){render()})
   .catch(function(err){say('p-out',err&&err.code==='photo-type'?'Elegí un archivo de imagen.':(err&&err.code==='photo-size'?'La imagen es muy pesada: elegí una de menos de 15 MB.':'No pude usar esa imagen. Probá con otra.'))})});
-window.addEventListener('popstate',function(e){var st=e.state||{};S.view=VIEWS.some(function(x){return x[0]===st.v})?st.v:'hoy';var n=st.n||today();if(n!==S.cur){S.cur=n;S.typed='';S.msg=''}S.confirm='';render();window.scrollTo(0,0)});
+window.addEventListener('popstate',function(e){var st=e.state||{};S.view=st.v==='admin'||VIEWS.some(function(x){return x[0]===st.v})?st.v:'hoy';var n=st.n||today();if(n!==S.cur){S.cur=n;S.typed='';S.msg=''}S.confirm='';render();window.scrollTo(0,0)});
 
 window.addEventListener('storage',function(e){if(e.key==='mc_v1'&&!editing()){MC.load();applyTheme();render()}});
 function applyTheme(){var r=document.documentElement;if(store.theme)r.setAttribute('data-theme',store.theme);else r.removeAttribute('data-theme')}
@@ -128,7 +132,7 @@ MC.load();applyTheme();
 try{history.replaceState({v:'hoy',n:S.cur},'',here())}catch(e){}
 if(!MC.clueOf(S.cur))S.pz='cargando';
 render();
-MC.base.conectar(refreshLive,function(){S.amsg='';S.am=null;applyTheme();if(editing()&&S.view!=='cuenta')refreshLive();else render()}).then(function(){
+MC.base.conectar(refreshLive,function(){S.amsg='';S.am=null;S.adm=null;S.ae=null;applyTheme();if(editing()&&S.view!=='cuenta')refreshLive();else render()}).then(function(){
   var mine=Object.keys(store.hist).map(Number).concat([today()]);
   var go2=function(){if(!editing())render();else refreshLive()};
   if(!MC.base.conectada()){S.pz=MC.clueOf(S.cur)?'listo':'error';go2();return}

@@ -55,7 +55,7 @@ function vAccount(){var S=MC.S,con=MC.base.conectada(),u=MC.base.usuario(),h='';
 
   h+=sec('Apariencia','Elegí cómo se ve la página.','<div class="themes" role="group" aria-label="Tema">'+THEMES.map(function(t){return '<button class="theme" data-act="theme" data-v="'+t[0]+'" aria-pressed="'+(store.theme===t[0])+'">'+svg(t[2])+'<span>'+t[1]+'</span></button>'}).join('')+'</div>');
 
-  if(con&&u&&MC.base.esAdmin())h+=sec('Administración','Sube a Firestore las pistas de privado/banco.js. Funciona solo si abrís la página desde tu compu.','<div><button class="btn" data-act="upclues">Subir pistas</button></div>'+out('ad-out',S));
+  if(con&&u&&MC.base.esAdmin())h+=sec('Administración','Editá las pistas, programá las próximas y revisá lo que te mandan los jugadores.','<div><button class="btn" data-act="go" data-v="admin">Administrar pistas</button></div>');
 
   var everywhere=con&&u;
   h+=sec('Tu progreso',everywhere?'Tus partidas, tu racha y tus estadísticas se guardan en tu cuenta.':'Tus partidas, tu racha y tus estadísticas se guardan en este dispositivo hasta que inicies sesión.'+(MC.mem?' Ahora mismo no se pueden guardar, así que se pierden al cerrar la página.':''),

@@ -15,6 +15,7 @@ function watch(f){subs.push(f);setTimeout(f,0);return function(){var i=subs.inde
 function doc(path){return {
   get:function(){return later(function(){return snap(path)})},
   set:function(d){return later(function(){DB[path]=copy(d);commit()})},
+  update:function(d){return later(function(){if(!(path in DB))throw {code:'not-found'};var o=DB[path];for(var k in d)o[k]=copy(d[k]);commit()})},
   delete:function(){return later(function(){delete DB[path];commit()})},
   onSnapshot:function(cb){return watch(function(){cb(snap(path))})}}}
 function query(name,q){q=q||{f:[],o:null,n:0};

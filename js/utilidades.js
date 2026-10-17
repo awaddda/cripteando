@@ -8,6 +8,9 @@ function readP(){try{var o=JSON.parse(localStorage.getItem(KP)||'{}');return o&&
 var RAW=readP();
 (function(){for(var k in RAW){try{var c=dec(RAW[k]);if(valid(c))PZ[k]=c;else delete RAW[k]}catch(e){delete RAW[k]}}})();
 MC.codificar=enc;
+MC.decodificar=function(h){try{var c=dec(h);return valid(c)?c:null}catch(e){return null}};
+MC.pistaValida=valid;
+MC.quitarPista=function(n){if(!(n in RAW)&&!PZ[n])return;delete RAW[n];delete PZ[n];try{localStorage.setItem(KP,JSON.stringify(RAW))}catch(e){}};
 MC.guardarPistas=function(m){var ch=false;for(var k in m){try{var c=dec(m[k]);if(!valid(c))continue;if(RAW[k]!==m[k])ch=true;RAW[k]=m[k];PZ[k]=c}catch(e){}}
   if(ch)try{localStorage.setItem(KP,JSON.stringify(RAW))}catch(e){}return ch};
 MC.pistasPlanas=function(list){(list||[]).forEach(function(c,i){if(valid(c))PZ[i+1]=c})};

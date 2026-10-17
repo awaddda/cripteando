@@ -68,21 +68,24 @@ function vSend(){var S=MC.S,d=draft(),u=MC.base.usuario(),tab=S.stab==='preview'
     '<div class="row-wrap"><button class="btn pri" type="submit">Enviar pista</button></div><p class="msg '+(S.scls||'')+'" id="s-msg" role="status" aria-live="polite" style="text-align:left">'+esc(S.smsg||'')+'</p></section></form>';
   return h+subs}
 
-function checkSend(){var el=$('#s-check');if(!el)return;var d=readForm(),text=d.text||'',ans=norm(d.ans),w=wordsOf(text),lines=[],cls='note';
-  if(!text.trim()||!ans){el.className='note';el.textContent='Cuando completes el enunciado y la respuesta, verifico lo que se pueda de forma automática.';return}
+function verify(text,ans,mechs){var w=wordsOf(text),lines=[];
   var mm=text.match(/\((\d+)\)\s*$/);
   var grp=function(f){for(var i=0;i<w.length;i++)for(var j=i+1;j<=Math.min(w.length,i+5);j++){if(f(w.slice(i,j)))return w.slice(i,j).join(' ')}return null};
   var sorted=function(s){return s.split('').sort().join('')},bad=false,any=false;
-  d.mechs.forEach(function(m){var g;
+  mechs.forEach(function(m){var g;
     if(m==='oculta'){any=true;g=norm(text.replace(/\(.*$/,'')).indexOf(ans)>-1;lines.push(g?'La respuesta aparece escondida en la frase.':'No encuentro la respuesta escondida de corrido en la frase.');bad=bad||!g}
     else if(m==='anagrama'){any=true;g=grp(function(x){var n=norm(x.join(''));return n.length===ans.length&&n!==ans&&sorted(n)===sorted(ans)});lines.push(g?'Las letras de «'+g+'» se reordenan en '+ans+'.':'No encuentro un grupo de palabras con exactamente las letras de la respuesta.');bad=bad||!g}
     else if(m==='bifronte'){any=true;g=grp(function(x){return norm(x.join('')).split('').reverse().join('')===ans});lines.push(g?'«'+g+'» leído al revés da '+ans+'.':'No encuentro nada que al revés dé la respuesta.');bad=bad||!g}
     else if(m==='iniciales'){any=true;g=grp(function(x){return x.map(function(y){return norm(y).charAt(0)}).join('')===ans});lines.push(g?'Las iniciales de «'+g+'» forman '+ans+'.':'No encuentro palabras seguidas cuyas iniciales formen la respuesta.');bad=bad||!g}});
-  if(!d.mechs.length)lines.push('Elegí al menos un tipo de juego.');
+  if(!mechs.length)lines.push('Elegí al menos un tipo de juego.');
   else if(!any)lines.push('Para estos tipos de juego no puedo verificarlo solo, así que revisala vos letra por letra.');
   if(mm&&+mm[1]!==ans.length){lines.push('Ojo: el número entre paréntesis ('+mm[1]+') no coincide con las '+ans.length+' letras de la respuesta.');bad=true}
-  if(!marked(d).def)lines.push('Falta marcar la definición en el editor de segmentos.');
-  el.className=any?(bad?'note warn':'note ok'):'note';el.textContent=lines.join(' ')}
+  return {lines:lines,bad:bad,any:any}}
+function checkSend(){var el=$('#s-check');if(!el)return;var d=readForm(),text=d.text||'',ans=norm(d.ans);
+  if(!text.trim()||!ans){el.className='note';el.textContent='Cuando completes el enunciado y la respuesta, verifico lo que se pueda de forma automática.';return}
+  var v=verify(text,ans,d.mechs);
+  if(!marked(d).def)v.lines.push('Falta marcar la definición en el editor de segmentos.');
+  el.className=v.any?(v.bad?'note warn':'note ok'):'note';el.textContent=v.lines.join(' ')}
 function paintParts(){var d=readForm(),t=$('#s-tokens');if(t)t.innerHTML=tokensHtml(d)}
 
 function sendClue(){var S=MC.S,d=readForm(),m=marked(d),ans=(d.ans||'').trim();
@@ -114,6 +117,8 @@ function clickSend(a,t){var S=MC.S,d=readForm();
   var y=window.scrollY;MC.render();window.scrollTo(0,y)}
 
 MC.vSend=vSend;
+MC.verificar=verify;
+MC.palabras=wordsOf;
 MC.checkSend=checkSend;
 MC.sendClue=sendClue;
 MC.sendAutosave=autosave;

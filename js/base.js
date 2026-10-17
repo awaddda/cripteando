@@ -41,7 +41,7 @@ function loadScript(src){return new Promise(function(res,rej){var s=document.cre
 function connect(alCambiar,cambioSesion){if(alCambiar)avisar=alCambiar;if(cambioSesion)alSesion=cambioSesion;
   var cfg=window.MC_FIREBASE,ready;
   if(cfg&&cfg.apiKey)ready=window.firebase&&window.firebase.firestore?Promise.resolve():loadScript(SDK+'app-compat.js').then(function(){return Promise.all([loadScript(SDK+'auth-compat.js'),loadScript(SDK+'firestore-compat.js')])});
-  else if(isLocal()){B.local=true;cfg={apiKey:'local'};ready=(window.firebase&&window.firebase.local?Promise.resolve():loadScript('js/base-local.js?v=20261016-11')).then(function(){return loadBank().then(MC.pistasPlanas,function(){})})}
+  else if(isLocal()){B.local=true;cfg={apiKey:'local'};ready=(window.firebase&&window.firebase.local?Promise.resolve():loadScript('js/base-local.js?v=20261016-12')).then(function(){return loadBank().then(MC.pistasPlanas,function(){})})}
   else return Promise.resolve();
   return ready.then(function(){return init(cfg)},function(){return null})}
 function init(cfg){
@@ -150,9 +150,18 @@ function loadBank(){if(Array.isArray(window.MC_BANCO))return Promise.resolve(win
 function isAdmin(){return !!(B.uid&&(B.local||B.uid===window.MC_ADMIN))}
 function uploadClues(){if(!isAdmin())return Promise.reject({code:'permission-denied'});
   return loadBank().then(function(list){var i=0,n=list.length,done=0;
-    var next=function(){if(i>=n)return Promise.resolve(done);var k=++i,c=list[k-1];
+    var next=function(){if(i>=n)return Promise.resolve(done);var k=++i,c=list[k-1];if(!MC.pistaValida(c))return next();
       return withRetry(function(){return B.db.doc('pistas/'+k).set({n:k,c:MC.codificar(c)})}).then(function(){done++;return next()})};
     return next()})}
+function adminOnly(){return isAdmin()&&B.db?null:Promise.reject({code:'permission-denied'})}
+function allClues(){return adminOnly()||withRetry(function(){return B.db.collection('pistas').orderBy('n').get()}).then(function(s){var out=[],m={},T=today();
+  s.docs.forEach(function(d){var x=d.data(),c=x&&typeof x.c==='string'?MC.decodificar(x.c):null;if(c&&typeof x.n==='number'){out.push({n:x.n,c:c});if(x.n<=T)m[x.n]=x.c}});
+  MC.guardarPistas(m);return out})}
+function saveClue(n,c){return adminOnly()||Promise.resolve().then(function(){if(!MC.pistaValida(c))throw {code:'bad-clue'};var h=MC.codificar(c);
+  return withRetry(function(){return B.db.doc('pistas/'+n).set({n:n,c:h})}).then(function(){if(n<=today()){var m={};m[n]=h;MC.guardarPistas(m)}})})}
+function deleteClue(n){return adminOnly()||withRetry(function(){return B.db.doc('pistas/'+n).delete()}).then(function(){MC.quitarPista(n)})}
+function listOf(name){return adminOnly()||withRetry(function(){return B.db.collection(name).orderBy('t','desc').limit(100).get()}).then(function(s){return s.docs.map(function(d){var x=d.data()||{};x.id=d.id;return x})})}
+function markSub(id,st){return adminOnly()||withRetry(function(){return B.db.doc('submissions/'+id).update({st:st})})}
 
 function sendClue(d){return withRetry(function(){return B.db.collection('submissions').add({u:B.uid,al:d.pub?store.alias:'',pub:!!d.pub,text:d.text,answer:d.answer,mechs:d.mechs.join(','),seg:JSON.stringify(d.seg),exp:d.exp,hd:d.hd||'',hi:d.hi||'',hm:d.hm||'',extra:JSON.stringify(d.extra||[]),notes:d.notes||'',t:d.t,st:'pendiente'})})}
 
@@ -193,6 +202,12 @@ MC.base={
   pistaDeHoy:refreshToday,
   esAdmin:isAdmin,
   subirPistas:uploadClues,
+  todasLasPistas:allClues,
+  guardarPista:saveClue,
+  borrarPista:deleteClue,
+  envios:function(){return listOf('submissions')},
+  comentarios:function(){return listOf('feedback')},
+  marcarEnvio:markSub,
   motivo:reason
 };
 })(window.MC);
