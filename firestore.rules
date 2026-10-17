@@ -10,6 +10,15 @@ service cloud.firestore {
     function data() { return request.resource.data; }
     function isPhoto(x) { return x is string && (x == '' || (x.size() < 40000 && x.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$'))); }
 
+    match /pistas/{id} {
+      allow read: if resource.data.n <= today();
+      allow write: if signedIn() && me() == 'wfHwW9wNrVQWrkWJEgL0qLmMTap2'
+        && id == string(data().n)
+        && data().keys().hasOnly(['n', 'c'])
+        && isInt(data().n, 1, 100000)
+        && isText(data().c, 2, 40000);
+    }
+
     match /players/{uid} {
       allow read: if true;
       allow create, update: if signedIn() && me() == uid

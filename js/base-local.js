@@ -19,13 +19,13 @@ function doc(path){return {
   onSnapshot:function(cb){return watch(function(){cb(snap(path))})}}}
 function query(name,q){q=q||{f:[],o:null,n:0};
   var run=function(){var pre=name+'/',ids=Object.keys(DB).filter(function(p){if(p.indexOf(pre)!==0||p.slice(pre.length).indexOf('/')>-1)return false;
-      return q.f.every(function(w){return DB[p][w[0]]===w[1]})});
+      return q.f.every(function(w){var x=DB[p][w[0]];return w[1]==='>='?x>=w[2]:w[1]==='<='?x<=w[2]:w[1]==='>'?x>w[2]:w[1]==='<'?x<w[2]:x===w[2]})});
     if(q.o)ids.sort(function(a,b){var x=DB[a][q.o[0]]||0,y=DB[b][q.o[0]]||0;return q.o[1]==='desc'?y-x:x-y});
     if(q.n)ids=ids.slice(0,q.n);
     return {docs:ids.map(snap),size:ids.length}};
   var nq=function(ch){return query(name,{f:q.f.concat(ch.f||[]),o:ch.o||q.o,n:ch.n||q.n})};
   return {
-    where:function(k,op,v){return nq({f:[[k,v]]})},
+    where:function(k,op,v){return nq({f:[[k,op,v]]})},
     orderBy:function(k,dir){return nq({o:[k,dir||'asc']})},
     limit:function(n){return nq({n:n})},
     get:function(){return later(run)},

@@ -14,7 +14,9 @@ function save(){try{localStorage.setItem('mc_v1',JSON.stringify(store))}catch(e)
 MC.load=load;
 MC.save=save;
 
-MC.prog=function(n){var k=MC.norm(MC.clueOf(n).a),p=store.prog[n];
+MC.prog=function(n){var c=MC.clueOf(n),p=store.prog[n];
+  if(!c)return p&&typeof p==='object'&&Array.isArray(p.g)?p:{g:[],hd:0,hi:0,hm:0,hl:0,done:null,s:0,k:''};
+  var k=MC.norm(c.a);
   if(p&&typeof p==='object'&&p.k&&p.k!==k){p=null;delete store.hist[n]}
   if(!p||typeof p!=='object'||!Array.isArray(p.g))p=store.prog[n]={g:[],hd:0,hi:0,hm:0,hl:0,done:null,s:0,k:k};
   else if(!p.k)p.k=k;

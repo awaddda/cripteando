@@ -41,7 +41,7 @@ function vAccount(){var S=MC.S,con=MC.base.conectada(),u=MC.base.usuario(),h='';
     '<form class="stack" id="f-acc"><div class="field"><label for="a-alias">'+(con&&u?'Nombre de usuario':'Nombre')+'</label><input id="a-alias" maxlength="20" value="'+esc(store.alias)+'" autocomplete="off" autocapitalize="none" spellcheck="false">'+
       (con&&u?'<small>De 3 a 20 letras, números, puntos o guiones bajos. Tiene que ser único.</small>':'<small>Elegí uno que no sea tu nombre completo.</small>')+'</div>'+
     toggle('a-show','Mostrar mi nombre en las pistas que envío',store.showName,'showname')+
-    '<div class="row-wrap"><button class="btn pri" type="submit">Guardar perfil</button></div>'+out('a-msg',S)+'</form>');
+    '<div class="row-wrap"><button class="btn pri" type="submit" id="a-save" disabled>Guardar perfil</button></div>'+out('a-msg',S)+'</form>');
 
   h+=sec('Racha','','<p>Racha actual <b>'+MC.streak()+'</b> · máxima <b>'+MC.bestStreak()+'</b>. <button class="link" data-act="go" data-v="estadisticas">Ver estadísticas</button></p>');
 
@@ -54,6 +54,8 @@ function vAccount(){var S=MC.S,con=MC.base.conectada(),u=MC.base.usuario(),h='';
      :'<p class="muted">Iniciá sesión para mandarnos comentarios.</p>');
 
   h+=sec('Apariencia','Elegí cómo se ve la página.','<div class="themes" role="group" aria-label="Tema">'+THEMES.map(function(t){return '<button class="theme" data-act="theme" data-v="'+t[0]+'" aria-pressed="'+(store.theme===t[0])+'">'+svg(t[2])+'<span>'+t[1]+'</span></button>'}).join('')+'</div>');
+
+  if(con&&u&&MC.base.esAdmin())h+=sec('Administración','Sube a Firestore las pistas de privado/banco.js. Funciona solo si abrís la página desde tu compu.','<div><button class="btn" data-act="upclues">Subir pistas</button></div>'+out('ad-out',S));
 
   var everywhere=con&&u;
   h+=sec('Tu progreso',everywhere?'Tus partidas, tu racha y tus estadísticas se guardan en tu cuenta.':'Tus partidas, tu racha y tus estadísticas se guardan en este dispositivo hasta que inicies sesión.'+(MC.mem?' Ahora mismo no se pueden guardar, así que se pierden al cerrar la página.':''),

@@ -14,7 +14,11 @@ function cellsHtml(c,p,typed,done,win,pop,typedIn){
   return h}
 var LBL=MC.RL;
 var THUMB='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3zm0 0 4-7a2 2 0 0 1 2 2v4h5.5a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 17.1 21H7"/></svg>';
+function vMissing(n){var S=MC.S,t=n===today();
+  var msg=S.pz==='error'?['No pude cargar la pista','Revisá tu conexión y recargá la página.']:(S.pz==='listo'?[t?'La pista de hoy todavía no está lista':'Esta pista no existe','Volvé en un rato.']:['Cargando la pista…','']);
+  return '<div class="empty" role="status"><b>'+msg[0]+'</b>'+msg[1]+'</div>'+(t?'':'<p style="text-align:center;margin-top:16px"><button class="link" data-act="go" data-v="hoy" data-n="today">Ir a la pista de hoy</button></p>')}
 function vHoy(){var S=MC.S;
+  if(!clueOf(S.cur))return vMissing(S.cur);
   var n=S.cur,c=clueOf(n),p=prog(n),len=norm(c.a).length,done=!!p.done,win=p.done==='w';
 
   var fresh=S.fresh||'';S.fresh='';

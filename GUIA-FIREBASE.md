@@ -88,7 +88,7 @@ En uno o dos minutos, GitHub Pages actualiza la página.
 
 ## 7. Probar que todo funcione
 
-En <https://awaddda.github.io/mate-criptico/>:
+En <https://awaddda.github.io/cripteando/>:
 
 - [ ] En **Cuenta**, crear una cuenta con nombre de usuario, email y contraseña.
 - [ ] Cerrar sesión y volver a entrar con esa contraseña.
@@ -116,7 +116,7 @@ Si algo no anda, abrí la consola del navegador (clic derecho → Inspeccionar �
 - `pub`: si quiere que se muestre su nombre, y en ese caso `al` es el nombre.
 - `notes`: las notas para quien revisa.
 
-Para publicar una, verificala letra por letra y agregala **al final** del banco de pistas en `js/datos.js`:
+Para publicar una, verificala letra por letra y agregala **al final** de `privado/banco.js`, con estos campos:
 
 - `a`: la respuesta.
 - `m`: el mecanismo.
@@ -125,6 +125,15 @@ Para publicar una, verificala letra por letra y agregala **al final** del banco 
 - `ik`: qué pide el indicador, por ejemplo `'un anagrama'`.
 
 Después cambiá `st` a `aceptada` o `rechazada` para llevar la cuenta.
+
+### Subir pistas nuevas
+Las pistas no están en el código público: viven en `privado/banco.js`, que git no sube, y en Firestore, en la colección `pistas`. Las reglas solo dejan leer la de hoy y las anteriores.
+
+1. Agregá las pistas nuevas al final de `privado/banco.js`. La pista número 1 es la del 16 de octubre de 2026, la 2 la del 17, y así.
+2. En la Terminal: `cd ~/Documents/Claude-Code/mate-criptico` y `python3 -m http.server 8000`.
+3. Entrá a <http://localhost:8000>, iniciá sesión con tu cuenta y, en **Cuenta → Administración**, tocá **Subir pistas**.
+
+Guardá una copia de `privado/banco.js` fuera de la compu, por ejemplo en Google Drive: es el único lugar donde están las pistas sin codificar.
 
 ### Leer los comentarios
 **Firestore Database → Datos → `feedback`**.

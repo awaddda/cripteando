@@ -41,7 +41,7 @@ function loadScript(src){return new Promise(function(res,rej){var s=document.cre
 function connect(alCambiar,cambioSesion){if(alCambiar)avisar=alCambiar;if(cambioSesion)alSesion=cambioSesion;
   var cfg=window.MC_FIREBASE,ready;
   if(cfg&&cfg.apiKey)ready=window.firebase&&window.firebase.firestore?Promise.resolve():loadScript(SDK+'app-compat.js').then(function(){return Promise.all([loadScript(SDK+'auth-compat.js'),loadScript(SDK+'firestore-compat.js')])});
-  else if(isLocal()){B.local=true;cfg={apiKey:'local'};ready=window.firebase&&window.firebase.local?Promise.resolve():loadScript('js/base-local.js?v=20261016-8')}
+  else if(isLocal()){B.local=true;cfg={apiKey:'local'};ready=(window.firebase&&window.firebase.local?Promise.resolve():loadScript('js/base-local.js?v=20261016-9')).then(function(){return loadBank().then(MC.pistasPlanas,function(){})})}
   else return Promise.resolve();
   return ready.then(function(){return init(cfg)},function(){return null})}
 function init(cfg){
@@ -70,6 +70,7 @@ var loginReason=function(e){var c=e&&e.code||'';try{console.warn('Cripteando, se
   if(c==='name-taken-after')return 'Tu cuenta se creó, pero alguien tomó ese nombre de usuario justo antes. Elegí otro acá abajo, en Perfil.';
   if(c==='name-after')return 'Tu cuenta se creó, pero no pude guardar tu nombre de usuario. Escribilo de nuevo acá abajo, en Perfil.';
   if(c==='auth/operation-not-allowed'||c==='auth/admin-restricted-operation')return 'Las cuentas con email y contraseña no están activadas todavía.';
+  if(c==='no-bank')return 'No encontré privado/banco.js. Abrí la página desde tu compu, con localhost.';
   if(c==='permission-denied')return 'La base de datos no deja guardar esto. Revisá que las reglas de Firestore estén publicadas.';
   if(c==='auth/configuration-not-found')return 'El inicio de sesión no está activado en Firebase. Entrá a Authentication y tocá Comenzar.';
   if(c==='failed-precondition'||c==='not-found')return 'Todavía no está creada la base de datos de Firestore.';
@@ -136,6 +137,23 @@ function leaveGroup(c){if(B.db&&B.uid)setMember(c,false).catch(function(){});
 function vote(n,v){if(!B.db||!B.uid)return Promise.resolve();
   return withRetry(function(){return B.db.doc('votes/'+n+'_'+B.uid).set({n:n,u:B.uid,v:v||'',t:Date.now()})}).catch(function(){})}
 
+function fetchClues(ns){var need=MC.faltan(ns);if(!need.length)return Promise.resolve(false);
+  if(!B.db)return Promise.reject({code:'unavailable'});
+  var from=Math.min.apply(null,need),T=today(),to=Math.min(Math.max.apply(null,need),T);if(from>to)return Promise.resolve(false);
+  var q=function(t){return B.db.collection('pistas').where('n','>=',from).where('n','<=',t).orderBy('n').get()};
+  return withRetry(function(){return q(to)}).catch(function(e){if(e&&e.code==='permission-denied'&&to>from)return q(to-1);throw e})
+    .then(function(s){var m={};s.docs.forEach(function(d){var x=d.data();if(x&&typeof x.c==='string'&&typeof x.n==='number')m[x.n]=x.c});return MC.guardarPistas(m)})}
+function refreshToday(){if(!B.db)return Promise.resolve(false);var T=today();
+  return withRetry(function(){return B.db.doc('pistas/'+T).get()}).then(function(s){if(!s.exists)return false;var x=s.data(),m={};if(x&&typeof x.c==='string'){m[T]=x.c;return MC.guardarPistas(m)}return false},function(){return false})}
+function loadBank(){if(Array.isArray(window.MC_BANCO))return Promise.resolve(window.MC_BANCO);
+  return loadScript('privado/banco.js?t='+Date.now()).then(function(){if(!Array.isArray(window.MC_BANCO))throw {code:'no-bank'};return window.MC_BANCO},function(){throw {code:'no-bank'}})}
+function isAdmin(){return !!(B.uid&&(B.local||B.uid===window.MC_ADMIN))}
+function uploadClues(){if(!isAdmin())return Promise.reject({code:'permission-denied'});
+  return loadBank().then(function(list){var i=0,n=list.length,done=0;
+    var next=function(){if(i>=n)return Promise.resolve(done);var k=++i,c=list[k-1];
+      return withRetry(function(){return B.db.doc('pistas/'+k).set({n:k,c:MC.codificar(c)})}).then(function(){done++;return next()})};
+    return next()})}
+
 function sendClue(d){return withRetry(function(){return B.db.collection('submissions').add({u:B.uid,al:d.pub?store.alias:'',pub:!!d.pub,text:d.text,answer:d.answer,mechs:d.mechs.join(','),seg:JSON.stringify(d.seg),exp:d.exp,hd:d.hd||'',hi:d.hi||'',hm:d.hm||'',extra:JSON.stringify(d.extra||[]),notes:d.notes||'',t:d.t,st:'pendiente'})})}
 
 MC.base={
@@ -171,6 +189,10 @@ MC.base={
   enviarComentario:sendFeedback,
   eliminarCuenta:deleteAccount,
   sincronizar:syncIn,
+  pistas:fetchClues,
+  pistaDeHoy:refreshToday,
+  esAdmin:isAdmin,
+  subirPistas:uploadClues,
   motivo:reason
 };
 })(window.MC);

@@ -2,17 +2,17 @@
 'use strict';
 var $=MC.$, norm=MC.norm, clueOf=MC.clueOf, hasRole=MC.hasRole, store=MC.store, save=MC.save, prog=MC.prog, hintsOf=MC.hintsOf;
 
-function paintCells(typedIn){var S=MC.S,c=clueOf(S.cur),p=prog(S.cur),el=$('#cells');if(!el)return;var inp=$('#guess');var h=MC.cellsHtml(c,p,S.typed,!!p.done,p.done==='w',-1,typedIn);
+function paintCells(typedIn){var S=MC.S,c=clueOf(S.cur),p=prog(S.cur),el=$('#cells');if(!el||!c)return;var inp=$('#guess');var h=MC.cellsHtml(c,p,S.typed,!!p.done,p.done==='w',-1,typedIn);
   Array.prototype.slice.call(el.children).forEach(function(ch){if(ch!==inp)el.removeChild(ch)});el.insertAdjacentHTML('afterbegin',h)}
 function setMsg(t,cls){var S=MC.S;S.msg=t;S.msgCls=cls||'';var m=$('#msg');if(m){m.textContent=t;m.className='msg '+(cls||'')}}
-function hint(k){var S=MC.S,n=S.cur,c=clueOf(n),p=prog(n);if(p.done)return;
+function hint(k){var S=MC.S,n=S.cur,c=clueOf(n),p=prog(n);if(!c||p.done)return;
   if(k==='def'&&!p.hd&&hasRole(c,'def'))p.hd=1;
   else if(k==='ind'&&!p.hi&&hasRole(c,'ind'))p.hi=1;
   else if(k==='mat'&&!p.hm&&hasRole(c,'mat'))p.hm=1;
   else if(k==='let'&&p.hl<norm(c.a).length-1){p.hl++;S.typed=S.typed.slice(0,MC.freeOf(c,p).length)}
   else return;
   S.fresh=k;save();S.msg='';MC.render()}
-function check(){var S=MC.S,n=S.cur,c=clueOf(n),p=prog(n);if(p.done)return;var ans=norm(c.a),g=MC.merge(c,p,norm(S.typed));
+function check(){var S=MC.S,n=S.cur,c=clueOf(n),p=prog(n);if(!c||p.done)return;var ans=norm(c.a),g=MC.merge(c,p,norm(S.typed));
   if(norm(S.typed).length!==MC.freeOf(c,p).length){setMsg('Faltan letras: la respuesta tiene '+ans.length+'.','bad');return}
   if(p.g.indexOf(g)>-1){setMsg('Esa ya la probaste.','bad');return}
   if(g===ans){p.done='w';finish(n,'w');return}

@@ -1,6 +1,18 @@
 (function(MC){
 'use strict';
-var BANK=MC.BANK;
+var PZ={},KP='mc_pistas',KEY='cripteando';
+function enc(o){var s=encodeURIComponent(JSON.stringify(o)),out='';for(var i=0;i<s.length;i++){var c=s.charCodeAt(i)^KEY.charCodeAt(i%KEY.length);out+=(c<16?'0':'')+c.toString(16)}return out}
+function dec(h){var s='';for(var i=0;i<h.length;i+=2)s+=String.fromCharCode(parseInt(h.substr(i,2),16)^KEY.charCodeAt((i/2)%KEY.length));return JSON.parse(decodeURIComponent(s))}
+function valid(c){return !!(c&&typeof c==='object'&&typeof c.a==='string'&&c.a&&Array.isArray(c.t)&&c.t.length)}
+function readP(){try{var o=JSON.parse(localStorage.getItem(KP)||'{}');return o&&typeof o==='object'?o:{}}catch(e){return {}}}
+var RAW=readP();
+(function(){for(var k in RAW){try{var c=dec(RAW[k]);if(valid(c))PZ[k]=c;else delete RAW[k]}catch(e){delete RAW[k]}}})();
+MC.codificar=enc;
+MC.guardarPistas=function(m){var ch=false;for(var k in m){try{var c=dec(m[k]);if(!valid(c))continue;if(RAW[k]!==m[k])ch=true;RAW[k]=m[k];PZ[k]=c}catch(e){}}
+  if(ch)try{localStorage.setItem(KP,JSON.stringify(RAW))}catch(e){}return ch};
+MC.pistasPlanas=function(list){(list||[]).forEach(function(c,i){if(valid(c))PZ[i+1]=c})};
+MC.faltan=function(ns){return ns.filter(function(n){return n>=1&&!PZ[n]})};
+if(Array.isArray(window.MC_BANCO))MC.pistasPlanas(window.MC_BANCO);
 
 MC.$=function(s,r){return (r||document).querySelector(s)};
 MC.esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
@@ -10,7 +22,7 @@ var EPOCH=Math.floor(Date.UTC(2026,9,16)/86400000), DAY=86400000, OFF=3*3600000;
 
 MC.today=function(){return Math.max(1,Math.floor((Date.now()-OFF)/DAY)-EPOCH+1)};
 
-MC.clueOf=function(n){n=Math.max(1,Math.floor(n)||1);return BANK[(n-1)%BANK.length]};
+MC.clueOf=function(n){return PZ[Math.max(1,Math.floor(n)||1)]||null};
 MC.fmtDate=function(n){return new Intl.DateTimeFormat('es-AR',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'}).format(new Date((EPOCH+n-1)*DAY))};
 MC.fmtLong=function(n){return new Intl.DateTimeFormat('es-AR',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date((EPOCH+n-1)*DAY)).replace(/\./g,'')};
 MC.countdown=function(){var next=(Math.floor((Date.now()-OFF)/DAY)+1)*DAY+OFF,d=Math.max(0,next-Date.now()),p=function(x){return String(x).padStart(2,'0')};return p(Math.floor(d/3600000))+':'+p(Math.floor(d%3600000/60000))+':'+p(Math.floor(d%60000/1000))};
