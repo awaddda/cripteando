@@ -17,7 +17,7 @@ var VIEWS=[['hoy','Hoy','M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4
  ['cuenta','Cuenta','M18.5 20v-1a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4v1M12 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z']];
 var ico=function(d){return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+d+'"/></svg>'};
 
-function renderNav(){var SEP={archivo:1,aprender:1,grupos:1,enviar:1};$('#nav').innerHTML=VIEWS.map(function(v){return (SEP[v[0]]?'<span class="sep" aria-hidden="true"></span>':'')+'<button class="tab" data-act="go" data-v="'+v[0]+'"'+(v[0]==='hoy'?' data-n="today"':'')+(S.view===v[0]?' aria-current="page"':'')+'>'+ico(v[2])+'<span>'+v[1]+'</span></button>'}).join('')}
+function renderNav(){var SEP={archivo:1,aprender:1,grupos:1,enviar:1};$('#nav').innerHTML=VIEWS.map(function(v){return (SEP[v[0]]?'<span class="sep" aria-hidden="true"></span>':'')+'<button class="tab" data-act="go" data-v="'+v[0]+'" title="'+v[1]+'"'+(v[0]==='hoy'?' data-n="today"':'')+(S.view===v[0]?' aria-current="page"':'')+'>'+ico(v[2])+'<span>'+v[1]+'</span></button>'}).join('')}
 var allAsked=false,asked={};
 function need(ns){if(!MC.base.conectada())return;ns=MC.faltan(ns).filter(function(n){return !asked[n]});if(!ns.length)return;ns.forEach(function(n){asked[n]=1});
   S.pz='cargando';MC.base.pistas(ns).then(function(){S.pz='listo'},function(){S.pz='error'}).then(function(){if(!editing())render()})}
