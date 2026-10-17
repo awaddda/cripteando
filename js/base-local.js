@@ -9,7 +9,7 @@ var later=function(f){return new Promise(function(r,j){setTimeout(function(){try
 function notify(){subs.slice().forEach(function(f){try{f()}catch(e){}})}
 function commit(){write(KDB,DB);setTimeout(notify,0)}
 window.addEventListener('storage',function(e){if(e.key===KDB){DB=read(KDB,{});notify()}});
-function snap(path){return {id:path.split('/').pop(),exists:path in DB,data:function(){return copy(DB[path])}}}
+function snap(path){return {id:path.split('/').pop(),exists:path in DB,ref:doc(path),data:function(){return copy(DB[path])}}}
 function watch(f){subs.push(f);setTimeout(f,0);return function(){var i=subs.indexOf(f);if(i>-1)subs.splice(i,1)}}
 
 function doc(path){return {

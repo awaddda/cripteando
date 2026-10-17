@@ -1,0 +1,11 @@
+{
+  "name": "cripteando",
+  "private": true,
+  "description": "Compila la página para publicarla: junta y comprime los JS y el CSS en archivos con nombre de huella.",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.10"
+  }
+}

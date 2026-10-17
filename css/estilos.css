@@ -452,8 +452,10 @@ img.av{display:block;background:var(--surface-2)}
 @keyframes ld-sp{0%,28%{opacity:0;transform:scale(.25)}30%{opacity:.9;transform:scale(.3)}44%,100%{opacity:0;transform:scale(1)}}
 @keyframes ld-vap{0%,72%{opacity:0;transform:translateY(1px)}82%{opacity:.8}100%{opacity:0;transform:translateY(-4px)}}
 @media (prefers-reduced-motion:reduce){.loader{animation:none}.ld-tm,.ld-agw,.ld-ag,.ld-sp,.ld-vap{animation:none}.ld-tm{transform:rotate(28deg)}}
-.splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--bg);color:var(--ink-2);font-size:15px}
+.splash{animation:splash-off 0s 10s forwards;position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--bg);color:var(--ink-2);font-size:15px}
 .splash p{margin:0}
+/* red de seguridad: si main.js no carga o falla, la pantalla de carga no queda tapando todo */
+@keyframes splash-off{to{visibility:hidden;pointer-events:none}}
 .splash .ld-mate{width:251px}
 /* Al irse: primero se va el fondo (se ve la página con el mate encima) y después el mate */
 .splash.out.go{background-color:transparent;pointer-events:none;transition:background-color .35s ease}

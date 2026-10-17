@@ -2,7 +2,8 @@
 'use strict';
 var $=MC.$, norm=MC.norm, today=MC.today, clueOf=MC.clueOf, store=MC.store, save=MC.save;
 
-var BASE=(function(){try{return new URL('../',document.currentScript.src).pathname}catch(e){return '/'}})();
+// Carpeta base de la página: en la compu el script está en js/main.js; publicado, todo va en un solo archivo en la raíz
+var BASE=(function(){try{var s=document.currentScript.src;return new URL(/\/js\/main\.js(\?|$)/.test(s)?'../':'./',s).pathname}catch(e){return '/'}})();
 var S={view:'hoy',cur:today(),typed:'',msg:'',msgCls:'',fresh:'',bk:false,
   learn:null,lstep:0,lph:'def',lfound:{},ltyped:'',lmsg:'',lcls:'',lfr:null,lwin:false,
 lb:'racha',amsg:'',gsel:null,gmsg:'',gcls:'',confirm:'',smsg:'',scls:'',pz:''};
@@ -167,5 +168,5 @@ MC.base.conectar(refreshLive,function(){S.amsg='';S.am=null;S.adm=null;S.ae=null
   var go2=function(){if(!editing())render();else refreshLive()};
   if(!MC.base.conectada()){S.pz=MC.clueOf(S.cur)?'listo':'error';go2();return}
   S.pz='cargando';
-  Promise.all([MC.base.pistaDeHoy(),MC.base.pistas(mine)]).then(function(){S.pz='listo'},function(){S.pz=MC.clueOf(S.cur)?'listo':'error'}).then(go2)}).catch(function(){});
+  Promise.all([MC.base.pistaDeHoy(),MC.base.pistas(mine),MC.base.revisarPistas()]).then(function(){S.pz='listo'},function(){S.pz=MC.clueOf(S.cur)?'listo':'error'}).then(go2)}).catch(function(){});
 })(window.MC);

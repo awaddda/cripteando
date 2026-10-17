@@ -41,14 +41,14 @@ function loadScript(src){return new Promise(function(res,rej){var s=document.cre
 function connect(alCambiar,cambioSesion){if(alCambiar)avisar=alCambiar;if(cambioSesion)alSesion=cambioSesion;
   var cfg=window.MC_FIREBASE,ready;
   if(cfg&&cfg.apiKey)ready=window.firebase&&window.firebase.firestore?Promise.resolve():loadScript(SDK+'app-compat.js').then(function(){return Promise.all([loadScript(SDK+'auth-compat.js'),loadScript(SDK+'firestore-compat.js')])});
-  else if(isLocal()){B.local=true;cfg={apiKey:'local'};ready=(window.firebase&&window.firebase.local?Promise.resolve():loadScript('js/base-local.js?v=20261016-14')).then(function(){return loadBank().then(MC.pistasPlanas,function(){})})}
+  else if(isLocal()){B.local=true;cfg={apiKey:'local'};ready=(window.firebase&&window.firebase.local?Promise.resolve():loadScript('js/base-local.js?v=20261017-38')).then(function(){return loadBank().then(MC.pistasPlanas,function(){})})}
   else return Promise.resolve();
   return ready.then(function(){return init(cfg)},function(){return null})}
 function init(cfg){
   try{if(!firebase.apps.length)firebase.initializeApp(cfg);B.db=firebase.firestore();B.auth=firebase.auth();try{B.auth.languageCode='es'}catch(e){}}catch(e){B.db=null;B.auth=null;return Promise.resolve()}
   return new Promise(function(res){var first=true;
     B.auth.onAuthStateChanged(function(u){B.user=u||null;B.uid=u?u.uid:null;
-      if(u)syncIn().then(function(){publish(today());if(!B.creating)alSesion()});
+      if(u)syncIn().then(function(){return B.creating?null:ensureAlias()}).then(function(){publish(today());if(!B.creating)alSesion()});
       if(first){first=false;res()}else if(!B.creating)alSesion()},function(){if(first){first=false;res()}})})}
 function login(){if(!B.auth)return Promise.reject({code:'no-config'});var p=new firebase.auth.GoogleAuthProvider();
   return B.auth.signInWithPopup(p).catch(function(e){var c=e&&e.code||'';
@@ -84,6 +84,10 @@ function nameFree(n){if(!nameOk(n))return Promise.reject({code:'name-invalid'});
 function claimName(n){var k;return nameFree(n).then(function(key){k=key;var old=store.uname;
     return B.db.doc('usernames/'+k).set({uid:B.uid}).then(function(){if(old&&old!==k)return B.db.doc('usernames/'+old).delete().catch(function(){})})})
   .then(function(){store.uname=k;store.alias=String(n).trim().slice(0,20);MC.save();if(B.user&&B.user.updateProfile)B.user.updateProfile({displayName:store.alias}).catch(function(){});return publish(today())})}
+// Las reglas solo aceptan publicar con un nombre reservado o el automático JugadorNNN. Si alguien se puso otro nombre
+// antes de iniciar sesión, al entrar se intenta reservar; si no se puede (tomado o inválido), vuelve a uno automático.
+function ensureAlias(){if(store.uname||/^Jugador\d{3}$/.test(store.alias))return Promise.resolve();
+  return claimName(store.alias).catch(function(){store.alias='Jugador'+(100+Math.floor(Math.random()*900));MC.save()})}
 function signUp(name,email,pass){if(!B.auth)return Promise.reject({code:'no-config'});
   return nameFree(name).then(function(){B.creating=true;return B.auth.createUserWithEmailAndPassword(String(email).trim(),pass)})
     .then(function(cred){B.user=cred.user;B.uid=cred.user.uid;if(cred.user.sendEmailVerification)cred.user.sendEmailVerification().catch(function(){});
@@ -109,23 +113,20 @@ function mergeCloud(r){if(!r||typeof r!=='object')return;var rh=r.hist||{},rp=r.
   if(['','light','dark'].indexOf(r.theme)>-1)store.theme=r.theme}
 function upload(){if(!B.db||!B.uid)return Promise.resolve();return withRetry(function(){return B.db.doc('saves/'+B.uid).set(cloudDoc())}).catch(function(){})}
 function scheduleUpload(){if(syncing||!B.db||!B.uid)return;clearTimeout(upT);upT=setTimeout(upload,1500)}
-// Las partidas viejas no guardaban qué día se resolvieron. Si hay un resultado publicado ese mismo día, fue a tiempo;
-// si no, se jugó después desde el archivo. Sin perfil público nunca se publicó nada, así que se dejan como están.
-function fixDays(){var T=today(),ns=Object.keys(store.hist).map(Number).filter(function(n){var h=store.hist[n];return h&&h.r==='w'&&h.d==null&&n<T});
-  if(!ns.length||!store.pub)return Promise.resolve();
-  return Promise.all(ns.map(function(n){return B.db.doc('results/'+n+'_'+B.uid).get().then(function(s){store.hist[n].d=s.exists?n:T},function(){})}))}
 function syncIn(){if(!B.db||!B.uid)return Promise.resolve();syncing=true;
-  return withRetry(function(){return B.db.doc('saves/'+B.uid).get()}).then(function(s){if(s.exists)mergeCloud(s.data());return fixDays()}).then(function(){MC.save();syncing=false;return upload()})
+  return withRetry(function(){return B.db.doc('saves/'+B.uid).get()}).then(function(s){if(s.exists)mergeCloud(s.data());MC.save();syncing=false;return upload()})
   .catch(function(){syncing=false})}
 MC.alGuardar=scheduleUpload;
 
+// Borra todos los documentos propios de una colección (resultados de todos los días, votos)
+function wipeMine(name){return B.db.collection(name).where('u','==',B.uid).get().then(function(s){return Promise.all(s.docs.map(function(d){return d.ref.delete()}))}).catch(function(){})}
 function setPublic(on){store.pub=!!on;MC.save();if(!B.db||!B.uid)return Promise.resolve();
   if(on)return publish(today());
-  return Promise.all([B.db.doc('players/'+B.uid).delete(),B.db.doc('results/'+today()+'_'+B.uid).delete()]).catch(function(){})}
+  return Promise.all([B.db.doc('players/'+B.uid).delete().catch(function(){}),wipeMine('results')])}
 function sendFeedback(kind,msg){return withRetry(function(){return B.db.collection('feedback').add({u:B.uid,al:store.alias,kind:kind,msg:msg,t:Date.now()})})}
 function deleteAccount(){if(!B.user)return Promise.reject({code:'no-user'});var uid=B.uid,u=B.user;
   var leave=store.groups.map(function(c){return setMember(c,false).catch(function(){})});
-  return Promise.all(leave.concat([store.uname?B.db.doc('usernames/'+store.uname).delete():Promise.resolve(),B.db.doc('saves/'+uid).delete(),B.db.doc('players/'+uid).delete(),B.db.doc('results/'+today()+'_'+uid).delete()])).catch(function(){})
+  return Promise.all(leave.concat([store.uname?B.db.doc('usernames/'+store.uname).delete():Promise.resolve(),B.db.doc('saves/'+uid).delete(),B.db.doc('players/'+uid).delete(),wipeMine('results'),wipeMine('votes')])).catch(function(){})
   .then(function(){return u.delete().catch(function(e){if(e&&e.code==='auth/requires-recent-login'&&(u.providerData||[]).some(function(p){return p&&p.providerId==='google.com'}))return u.reauthenticateWithPopup(new firebase.auth.GoogleAuthProvider()).then(function(){return u.delete()});throw e})}).then(wipeLocal)}
 
 function createGroup(name){var code=genCode();
@@ -153,18 +154,27 @@ function refreshToday(){if(!B.db)return Promise.resolve(false);var T=today();
 function loadBank(fresh){if(!fresh&&Array.isArray(window.MC_BANCO))return Promise.resolve(window.MC_BANCO);window.MC_BANCO=null;
   return loadScript('privado/banco.js?t='+Date.now()).then(function(){if(!Array.isArray(window.MC_BANCO))throw {code:'no-bank'};return window.MC_BANCO},function(){throw {code:'no-bank'}})}
 function isAdmin(){return !!(B.uid&&(B.local||B.uid===window.MC_ADMIN))}
+// meta/pistas guarda cuándo se editó cada pista ({e:{n:hora}}): así los navegadores que ya la tenían guardada saben que tienen que volver a pedirla
+function markEdited(ns){var ref=B.db.doc('meta/pistas');return withRetry(function(){return ref.get()}).then(function(s){var e=(s.exists&&s.data().e)||{},t=Date.now();ns.forEach(function(n){e[n]=t});return ref.set({e:e})}).catch(function(){})}
+var KSEEN='mc_pistas_v';
+function checkEdits(){if(!B.db)return Promise.resolve(false);var seen={};try{seen=JSON.parse(localStorage.getItem(KSEEN)||'{}')||{}}catch(e){}
+  return B.db.doc('meta/pistas').get().then(function(s){var e=(s.exists&&s.data().e)||{},T=today(),ch=false;
+    var todo=Object.keys(e).filter(function(k){return +k<=T&&e[k]>(seen[k]||0)&&MC.clueOf(+k)});
+    return Promise.all(todo.map(function(k){return B.db.doc('pistas/'+k).get().then(function(d){var x=d.exists?d.data():null,m={};
+      if(x&&typeof x.c==='string'){m[k]=x.c;if(MC.guardarPistas(m))ch=true}else{MC.quitarPista(+k);ch=true}seen[k]=e[k]})}))
+    .then(function(){try{localStorage.setItem(KSEEN,JSON.stringify(seen))}catch(x){}return ch})}).catch(function(){return false})}
 function uploadClues(){if(!isAdmin())return Promise.reject({code:'permission-denied'});
   return loadBank(true).then(function(list){var i=0,n=list.length,done=0;
-    var next=function(){if(i>=n)return Promise.resolve(done);var k=++i,c=list[k-1];if(!MC.pistaValida(c))return next();
-      return withRetry(function(){return B.db.doc('pistas/'+k).set({n:k,c:MC.codificar(c)})}).then(function(){done++;return next()})};
+    var ns=[],next=function(){if(i>=n)return markEdited(ns).then(function(){return done});var k=++i,c=list[k-1];if(!MC.pistaValida(c))return next();
+      return withRetry(function(){return B.db.doc('pistas/'+k).set({n:k,c:MC.codificar(c)})}).then(function(){done++;ns.push(k);return next()})};
     return next()})}
 function adminOnly(){return isAdmin()&&B.db?null:Promise.reject({code:'permission-denied'})}
 function allClues(){return adminOnly()||withRetry(function(){return B.db.collection('pistas').orderBy('n').get()}).then(function(s){var out=[],m={},T=today();
   s.docs.forEach(function(d){var x=d.data(),c=x&&typeof x.c==='string'?MC.decodificar(x.c):null;if(c&&typeof x.n==='number'){out.push({n:x.n,c:c});if(x.n<=T)m[x.n]=x.c}});
   MC.guardarPistas(m);return out})}
 function saveClue(n,c){return adminOnly()||Promise.resolve().then(function(){if(!MC.pistaValida(c))throw {code:'bad-clue'};var h=MC.codificar(c);
-  return withRetry(function(){return B.db.doc('pistas/'+n).set({n:n,c:h})}).then(function(){if(n<=today()){var m={};m[n]=h;MC.guardarPistas(m)}})})}
-function deleteClue(n){return adminOnly()||withRetry(function(){return B.db.doc('pistas/'+n).delete()}).then(function(){MC.quitarPista(n)})}
+  return withRetry(function(){return B.db.doc('pistas/'+n).set({n:n,c:h})}).then(function(){if(n<=today()){var m={};m[n]=h;MC.guardarPistas(m)}return markEdited([n])})})}
+function deleteClue(n){return adminOnly()||withRetry(function(){return B.db.doc('pistas/'+n).delete()}).then(function(){MC.quitarPista(n);return markEdited([n])})}
 function listOf(name){return adminOnly()||withRetry(function(){return B.db.collection(name).orderBy('t','desc').limit(100).get()}).then(function(s){return s.docs.map(function(d){var x=d.data()||{};x.id=d.id;return x})})}
 function markSub(id,st){return adminOnly()||withRetry(function(){return B.db.doc('submissions/'+id).update({st:st})})}
 
@@ -205,6 +215,7 @@ MC.base={
   sincronizar:syncIn,
   pistas:fetchClues,
   pistaDeHoy:refreshToday,
+  revisarPistas:checkEdits,
   esAdmin:isAdmin,
   subirPistas:uploadClues,
   todasLasPistas:allClues,
