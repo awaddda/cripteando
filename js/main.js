@@ -23,16 +23,21 @@ var part=function(p){return typeof p==='string'?'<path d="'+p+'"/>':(p.t?'<g tra
 var ico=function(parts){return '<svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+parts.map(part).join('')+'</svg>'};
 
 function renderNav(){var SEP={archivo:1,aprender:1,grupos:1,enviar:1},tab=function(v){return '<button class="tab" data-act="go" data-v="'+v[0]+'"'+(v[0]==='hoy'?' data-n="today"':'')+(S.view===v[0]?' aria-current="page"':'')+'>'+ico(v[2])+'<span>'+v[1]+'</span></button>'};
+  // Si el nav ya está dibujado, solo se mueve la marca de la sección actual: así las transiciones del celular se ven
+  var nav=$('#nav'),tabs=nav.querySelectorAll('.tab');
+  if(tabs.length===VIEWS.length){var cur=null;Array.prototype.forEach.call(tabs,function(b){var on=b.dataset.v===S.view;if(on)cur=b;
+      if(on!==(b.getAttribute('aria-current')==='page')){if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')}});
+    if(cur&&nav.scrollWidth>nav.clientWidth)cur.scrollIntoView({inline:'nearest',block:'nearest',behavior:'smooth'});return}
   // Cuenta va aparte, sola a la derecha
-  $('#nav').innerHTML='<div class="nav-mid">'+VIEWS.filter(function(v){return v[0]!=='cuenta'}).map(function(v){return (SEP[v[0]]?'<span class="sep" aria-hidden="true"></span>':'')+tab(v)}).join('')+'</div>'+tab(VIEWS[VIEWS.length-1])}
+  nav.innerHTML='<div class="nav-mid">'+VIEWS.filter(function(v){return v[0]!=='cuenta'}).map(function(v){return (SEP[v[0]]?'<span class="sep" aria-hidden="true"></span>':'')+tab(v)}).join('')+'</div>'+tab(VIEWS[VIEWS.length-1])}
 var allAsked=false,asked={};
 function need(ns){if(!MC.base.conectada())return;ns=MC.faltan(ns).filter(function(n){return !asked[n]});if(!ns.length)return;ns.forEach(function(n){asked[n]=1});
   S.pz='cargando';MC.base.pistas(ns).then(function(){S.pz='listo'},function(){S.pz='error'}).then(function(){if(!editing())render()})}
 function allDays(){var o=[];for(var n=1;n<=today();n++)o.push(n);return o}
 // Pantalla de bienvenida: se va cuando la pista de hoy está lista (o falló), pero queda al menos SPLASH ms para que se vea el mate
-var SPLASH=1300;
+var SPLASH=2460; // desde que arranca la animación: el vapor está en su punto (2,11 s) y 0,35 s más
 function hideSplash(){var el=document.getElementById('splash');if(!el||el.className.indexOf('out')>-1)return;el.className+=' out';
-  setTimeout(function(){el.className+=' go';replayEnd();setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},450)},Math.max(0,SPLASH-(window.performance?performance.now():0)))}
+  setTimeout(function(){el.className+=' go';replayEnd();setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},450)},Math.max(0,SPLASH-(window.performance?performance.now()-(window.MC_T0||0):0)))}
 // Al entrar con la pista ya terminada, repite la animación del final (letras, partes y resultado) mientras se va la pantalla de carga
 function replayEnd(){if(S.view!=='hoy'||editing()||!MC.clueOf(S.cur)||!MC.prog(S.cur).done)return;S.fresh='end';render()}
 setTimeout(hideSplash,8000);
@@ -81,7 +86,7 @@ document.addEventListener('click',function(e){var t=e.target.closest('[data-act]
   else if(a==='bk'){S.bk=!S.bk;render()}
   else if(a==='vote')MC.vote(t.dataset.v);
   else if(a==='login'){S.amsg='';t.disabled=true;MC.base.entrar().catch(function(err){S.amsg=MC.base.motivoSesion(err);render()})}
-  else if(a==='logout'){MC.base.salir()}
+  else if(a==='logout'){MC.base.salir().then(function(){go('cuenta')},function(){go('cuenta')})} // al cerrar sesión: Cuenta, arriba de todo
   else if(a==='theme'){store.theme=t.dataset.v||'';save();applyTheme();render()}
   else if(a==='pub'){MC.base.publico(t.checked)}
   else if(a==='showname'){store.showName=t.checked;save()}
@@ -99,6 +104,7 @@ document.addEventListener('click',function(e){var t=e.target.closest('[data-act]
   else if(a==='lcheck')MC.learnCheck();
   else if(a==='lshow')MC.learnShow();
   else if(a==='shareimg')MC.shareImg(t);
+  else if(a==='install'&&MC.instalar){var ev=MC.instalar;ev.prompt();ev.userChoice.then(function(){MC.instalar=null;render()},function(){})}
   else if(a==='lb'){S.lb=t.dataset.v;render()}
   else if(a==='gsel'){S.gsel=t.dataset.c;S.confirm='';MC.liveGroups()}
   else if(a==='copycode'){MC.copyText(S.gsel,function(ok){t.textContent=ok?'Copiado':'Seleccioná el código'})}
@@ -141,6 +147,12 @@ function say(id,t,cls){var m=$('#'+id);if(m){m.textContent=t;m.className='msg '+
 document.addEventListener('change',function(e){if(e.target.id!=='a-photo'||!e.target.files||!e.target.files[0])return;
   say('p-out','Subiendo foto…','ok');MC.readPhoto(e.target.files[0]).then(function(d){return MC.base.cambiarFoto(d)}).then(function(){render()})
   .catch(function(err){say('p-out',err&&err.code==='photo-type'?'Elegí un archivo de imagen.':(err&&err.code==='photo-size'?'La imagen es muy pesada: elegí una de menos de 15 MB.':'No pude usar esa imagen. Probá con otra.'))})});
+// App instalable: el service worker solo en la página publicada (en la compu guardaría versiones viejas mientras se edita)
+(function(){var h=location.hostname;if('serviceWorker' in navigator&&location.protocol==='https:'&&h!=='localhost'&&h!=='127.0.0.1')
+  addEventListener('load',function(){navigator.serviceWorker.register(BASE+'sw.js').catch(function(){})})})();
+// Android y Chrome avisan cuando se puede instalar: se guarda el aviso para el botón de Cuenta
+addEventListener('beforeinstallprompt',function(e){e.preventDefault();MC.instalar=e;if(S.view==='cuenta'&&!editing())render()});
+addEventListener('appinstalled',function(){MC.instalar=null;if(S.view==='cuenta'&&!editing())render()});
 window.addEventListener('popstate',function(e){var st=e.state||{};S.view=isView(st.v)?st.v:(viewOf(location.pathname)||'hoy');var n=st.n||today();if(n!==S.cur){S.cur=n;S.typed='';S.msg=''}S.confirm='';render();window.scrollTo(0,0)});
 
 window.addEventListener('storage',function(e){if(e.key==='mc_v1'&&!editing()){MC.load();applyTheme();render()}});

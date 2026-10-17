@@ -420,37 +420,39 @@ img.av{display:block;background:var(--surface-2)}
 .ld-tm{transform-box:view-box;transform-origin:15.48px 28.45px;animation:ld-tm 2.8s infinite}
 .ld-ag{fill:none;stroke:var(--agua);stroke-width:1.7;stroke-linecap:round;stroke-dasharray:1 2;stroke-dashoffset:1.05;animation:ld-ag 2.8s infinite}
 .ld-sp{fill:none;stroke:var(--agua);stroke-width:.7;opacity:0;transform-box:fill-box;transform-origin:center;animation:ld-sp 2.8s infinite}
-.ld-sp.s2{animation-delay:.45s}
+.ld-sp.s2{animation-delay:.3s}
 /* Todo en un solo movimiento: el amague, se inclina y el agua empieza a salir a mitad de camino (~55°),
    se balancea suave mientras sirve y vuelve mientras la cola del agua termina de caer */
 @keyframes ld-tm{
   0%{transform:rotate(28deg);animation-timing-function:cubic-bezier(.4,0,.6,1)}
   8%{transform:rotate(24deg);animation-timing-function:cubic-bezier(.45,0,.2,1)}
   30%{transform:rotate(63deg);animation-timing-function:ease-in-out}
-  42%{transform:rotate(61.5deg);animation-timing-function:ease-in-out}
-  54%{transform:rotate(62.5deg);animation-timing-function:ease-in-out}
-  62%{transform:rotate(61.5deg);animation-timing-function:cubic-bezier(.45,0,.3,1)}
-  86%{transform:rotate(26deg);animation-timing-function:ease-out}
-  93%,100%{transform:rotate(28deg)}}
+  38%{transform:rotate(61.5deg);animation-timing-function:ease-in-out}
+  44%{transform:rotate(62.5deg);animation-timing-function:ease-in-out}
+  49.5%{transform:rotate(61.5deg);animation-timing-function:ease-in-out}
+  55.4%{transform:rotate(62deg);animation-timing-function:cubic-bezier(.45,0,.3,1)}
+  79.4%{transform:rotate(26deg);animation-timing-function:ease-out}
+  86.4%,100%{transform:rotate(28deg)}}
 /* el chorro sigue a la boca de la tapa: desplazamientos calculados para cada ángulo del termo */
 .ld-agw{animation:ld-agw 2.8s infinite}
 @keyframes ld-agw{
   0%,20%{transform:translate(-1.95px,-4.1px);animation-timing-function:cubic-bezier(.2,.6,.4,1)}
   30%{transform:translate(.38px,.98px);animation-timing-function:ease-in-out}
-  42%{transform:translate(0,0);animation-timing-function:ease-in-out}
-  54%{transform:translate(.26px,.65px);animation-timing-function:ease-in-out}
-  62%,100%{transform:translate(0,0)}}
+  38%{transform:translate(0,0);animation-timing-function:ease-in-out}
+  44%{transform:translate(.26px,.65px);animation-timing-function:ease-in-out}
+  49.5%{transform:translate(0,0);animation-timing-function:ease-in-out}
+  55.4%,100%{transform:translate(.13px,.33px)}}
 /* el frente cae acelerando (ease-in) y, al cortar, la cola se despega de la boca y cae; fuera de eso se oculta para que no quede la punta redonda */
 @keyframes ld-ag{
   0%,20%{stroke-dashoffset:1.05;opacity:0;animation-timing-function:cubic-bezier(.5,0,1,1)}
   20.5%{opacity:1}
   28%{stroke-dashoffset:0;stroke-width:1.5}
-  40%{stroke-width:1.8}50%{stroke-width:1.6}
-  62%{stroke-dashoffset:0;stroke-width:1.7;animation-timing-function:cubic-bezier(.5,0,1,1)}
-  69.5%{opacity:1}
-  70%,100%{stroke-dashoffset:-1.05;stroke-width:1.2;opacity:0}}
+  34%{stroke-width:1.8}42%{stroke-width:1.6}49%{stroke-width:1.8}
+  55.4%{stroke-dashoffset:0;stroke-width:1.7;animation-timing-function:cubic-bezier(.5,0,1,1)}
+  62.9%{opacity:1}
+  63.4%,100%{stroke-dashoffset:-1.05;stroke-width:1.2;opacity:0}}
 @keyframes ld-sp{0%,28%{opacity:0;transform:scale(.25)}30%{opacity:.9;transform:scale(.3)}44%,100%{opacity:0;transform:scale(1)}}
-@keyframes ld-vap{0%,72%{opacity:0;transform:translateY(1px)}82%{opacity:.8}100%{opacity:0;transform:translateY(-4px)}}
+@keyframes ld-vap{0%,65.4%{opacity:0;transform:translateY(1px)}75.4%{opacity:.8}93.4%,100%{opacity:0;transform:translateY(-4px)}}
 @media (prefers-reduced-motion:reduce){.loader{animation:none}.ld-tm,.ld-agw,.ld-ag,.ld-sp,.ld-vap{animation:none}.ld-tm{transform:rotate(28deg)}}
 .splash{animation:splash-off 0s 10s forwards;position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--bg);color:var(--ink-2);font-size:15px}
 .splash p{margin:0}
@@ -461,3 +463,27 @@ img.av{display:block;background:var(--surface-2)}
 .splash.out.go{background-color:transparent;pointer-events:none;transition:background-color .35s ease}
 .splash.out.go .ld-mate{opacity:0;transition:opacity .25s ease .12s}
 @media (prefers-reduced-motion:reduce){.splash.out.go,.splash.out.go .ld-mate{transition:none}}
+/* En el celular el nav muestra solo íconos; la sección actual también lleva su nombre. Los nombres ocultos siguen para lectores de pantalla */
+@media (max-width:560px){
+  .bar .wrap{padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
+  nav{gap:0}.nav-mid{gap:0}
+  .tab{padding:9px 7px;font-size:14px;gap:0}
+  /* el nombre se despliega y la burbuja aparece con un pop; los demás íconos se corren solos. Los nombres plegados siguen para lectores de pantalla */
+  /* el nombre anterior se pliega rápido y el nuevo se despliega apenas después: nunca están los dos abiertos, así Cuenta no se corre */
+  .tab span{display:inline-block;max-width:0;opacity:0;overflow:hidden;margin-left:0;transition:max-width .22s cubic-bezier(.4,0,.2,1),opacity .15s ease,margin-left .22s cubic-bezier(.4,0,.2,1)}
+  .tab[aria-current="page"] span{max-width:100px;opacity:1;margin-left:6px;transition:max-width .45s cubic-bezier(.3,.7,.3,1) .12s,opacity .3s ease .2s,margin-left .45s cubic-bezier(.3,.7,.3,1) .12s}
+  .tab[aria-current="page"]{animation:nav-pop .5s cubic-bezier(.3,1.2,.5,1)}
+  .sep{display:none}
+  nav>.tab[data-v="cuenta"]{margin-left:4px}
+}
+@keyframes nav-pop{from{transform:scale(.92)}}
+@media (prefers-reduced-motion:reduce){.tab span,.tab[aria-current="page"] span{transition:none}.tab[aria-current="page"]{animation:none}}
+.arow .st{min-width:96px;text-align:center}
+/* Votos de cada pista en el panel de admin: circulitos como las letras, con el pulgar y el contador */
+.avotes{display:inline-flex;align-items:center;gap:10px;flex:none}
+.avote{display:inline-flex;align-items:center;gap:5px;font:600 14px var(--font-body);font-variant-numeric:tabular-nums}
+.avote i{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface-2)}
+.avote.up i{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 55%,var(--line))}
+.avote.down i{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 55%,var(--line))}
+.avote.down svg{transform:rotate(180deg)}
+@media (max-width:560px){.arow .avotes{gap:6px}.avote i{width:24px;height:24px}}

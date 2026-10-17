@@ -9,6 +9,9 @@ function find(n){return A().list.filter(function(x){return x.n===n})[0]}
 function nextN(){var l=A().list;return l.length?l[l.length-1].n+1:1}
 function status(n){var T=today();return n<T?['Publicada','w']:(n===T?['Hoy','t']:['Programada','p'])}
 function fecha(t){try{return new Intl.DateTimeFormat('es-AR',{day:'numeric',month:'short'}).format(new Date(t)).replace(/\./g,'')}catch(e){return ''}}
+var THUMB='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3zm0 0 4-7a2 2 0 0 1 2 2v4h5.5a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 17.1 21H7"/></svg>';
+function votes(n){var v=(A().votes||{})[n]||{up:0,down:0};
+  return '<span class="avotes" title="'+v.up+(v.up===1?' me gusta':' me gustan')+', '+v.down+' no'+(v.down===1?' me gusta':' me gustan')+'"><span class="avote up"><i>'+THUMB+'</i><b>'+v.up+'</b></span><span class="avote down"><i>'+THUMB+'</i><b>'+v.down+'</b></span></span>'}
 function field(id,label,ctrl,small){return '<div class="field"><label for="'+id+'">'+label+'</label>'+ctrl+(small?'<small>'+small+'</small>':'')+'</div>'}
 
 function stars(html){return String(html||'').replace(/<b>([\s\S]*?)<\/b>/gi,'*$1*').replace(/<[^>]+>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&')}
@@ -42,7 +45,7 @@ function prev(e){var c=toClue(e),len=norm(c.a).length;
 function editor(e){var S=MC.S,T=today(),role=S.arole===undefined?'def':S.arole,ck=checkInfo(e);
   var opts=MECHS.map(function(m){return m[1]});if(e.m&&opts.indexOf(e.m)<0)opts.unshift(e.m);
   var h='<button class="link" data-act="aback">Volver a la lista</button><h1 class="page-title" style="margin-top:10px">'+(e.isNew?'Nueva pista':'Pista')+' #'+e.n+'</h1>'+
-    '<p class="lead">'+(e.n<T?'Salió el ':(e.n===T?'Es la pista de hoy, del ':'Sale el '))+fmtLong(e.n)+'.</p>';
+    '<p class="lead">'+(e.n<T?'Salió el ':(e.n===T?'Es la pista de hoy, del ':'Sale el '))+fmtLong(e.n)+'.</p>'+(!e.isNew&&e.n<=T?'<div style="margin:-10px 0 18px">'+votes(e.n)+'</div>':'');
   if(!e.isNew&&e.n<=T)h+='<div class="note warn">Esta pista ya salió. Si cambiás la respuesta, se borra el progreso de quienes ya la jugaron.'+(e.n<T?' Quienes ya la abrieron siguen viendo la versión anterior.':'')+'</div>';
   if(e.sub)h+='<div class="note">Viene de una pista enviada. Al guardarla, queda marcada como aceptada.</div>';
   h+='<form class="send" id="f-adm" novalidate><section class="acc-sec">'+
@@ -76,7 +79,7 @@ function vAdmin(){var S=MC.S,ad=A();
   h+=ahead>0?'<div class="note ok">Tenés pistas programadas hasta el '+fmtLong(last)+': '+ahead+(ahead===1?' día más.':' días más.')+'</div>':
     '<div class="note warn">'+(ad.list.length?'No hay pistas programadas después de hoy: mañana no sale ninguna.':'Todavía no hay pistas cargadas.')+'</div>';
   h+='<section class="acc-sec"><h2>Pistas</h2>'+(ad.list.length?'<ul class="list">'+ad.list.slice().reverse().map(function(x){var st=status(x.n);
-    return '<li><button class="arow" data-act="aedit" data-n="'+x.n+'"><span class="n">#'+x.n+'</span><span class="d"><b class="mono">'+esc(x.c.a)+'</b><small>'+fmtLong(x.n)+', '+esc(x.c.m)+'</small></span><span class="st '+st[1]+'">'+st[0]+'</span></button></li>'}).join('')+'</ul>':'<p class="muted">Cuando cargues pistas, aparecen acá.</p>')+'</section>';
+    return '<li><button class="arow" data-act="aedit" data-n="'+x.n+'"><span class="n">#'+x.n+'</span><span class="d"><b class="mono">'+esc(x.c.a)+'</b><small>'+fmtLong(x.n)+', '+esc(x.c.m)+'</small></span>'+votes(x.n)+'<span class="st '+st[1]+'">'+st[0]+'</span></button></li>'}).join('')+'</ul>':'<p class="muted">Cuando cargues pistas, aparecen acá.</p>')+'</section>';
   h+='<section class="acc-sec"><h2>Pistas enviadas</h2>'+(ad.subs.length?'<ul class="list">'+ad.subs.map(function(x,i){var st=STL[x.st]||STL.pendiente;
     return '<li class="panel" style="padding:14px 16px"><div class="sec-top"><b class="mono">'+esc(x.answer)+'</b><span class="st '+st[1]+'">'+st[0]+'</span></div><p class="serif" style="margin:6px 0">'+esc(x.text)+'</p>'+
       (x.notes?'<p class="muted" style="margin:0 0 6px">'+esc(x.notes)+'</p>':'')+'<small class="muted">'+(x.pub&&x.al?'Firma como '+esc(x.al)+', ':'Anónima, ')+fecha(x.t)+(x.u?' · cuenta <span class="mono" title="'+esc(x.u)+'">'+esc(String(x.u).slice(0,8))+'</span>':'')+'</small>'+
@@ -90,7 +93,7 @@ function importBox(S){var m=S.am&&S.am.id==='ad-out'?S.am:null;
     '<p class="msg '+(m?m.cls:'')+'" id="ad-out" role="status" style="text-align:left">'+(m?esc(m.t):'')+'</p></section>'}
 
 function load(){var S=MC.S,ad=A();if(!MC.base.esAdmin()||ad.st==='cargando')return;ad.st='cargando';
-  Promise.all([MC.base.todasLasPistas().then(function(l){ad.list=l}),MC.base.envios().then(function(l){ad.subs=l},function(){ad.subs=[]}),MC.base.comentarios().then(function(l){ad.fb=l},function(){ad.fb=[]})])
+  Promise.all([MC.base.todasLasPistas().then(function(l){ad.list=l}),MC.base.envios().then(function(l){ad.subs=l},function(){ad.subs=[]}),MC.base.comentarios().then(function(l){ad.fb=l},function(){ad.fb=[]}),MC.base.votos().then(function(m){ad.votes=m},function(){ad.votes={}})])
     .then(function(){ad.st='listo'},function(e){ad.st='error';try{console.warn('Cripteando, administrar:',e&&e.code||e,e&&e.message||'')}catch(x){}}).then(function(){if(S.view==='admin'&&!S.ae)MC.render()})}
 
 function readForm(){var e=MC.S.ae;if(!e)return null;var v=function(id){var x=$('#'+id);return x?x.value:null},y;

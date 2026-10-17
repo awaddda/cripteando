@@ -176,6 +176,9 @@ function saveClue(n,c){return adminOnly()||Promise.resolve().then(function(){if(
   return withRetry(function(){return B.db.doc('pistas/'+n).set({n:n,c:h})}).then(function(){if(n<=today()){var m={};m[n]=h;MC.guardarPistas(m)}return markEdited([n])})})}
 function deleteClue(n){return adminOnly()||withRetry(function(){return B.db.doc('pistas/'+n).delete()}).then(function(){MC.quitarPista(n);return markEdited([n])})}
 function listOf(name){return adminOnly()||withRetry(function(){return B.db.collection(name).orderBy('t','desc').limit(100).get()}).then(function(s){return s.docs.map(function(d){var x=d.data()||{};x.id=d.id;return x})})}
+// Votos por pista: {n:{up,down}}. Los votos se pueden leer públicamente, pero solo el panel de admin los cuenta
+function countVotes(){return adminOnly()||withRetry(function(){return B.db.collection('votes').get()}).then(function(s){var m={};
+  s.docs.forEach(function(d){var x=d.data()||{},n=x.n;if(typeof n!=='number'||(x.v!=='up'&&x.v!=='down'))return;if(!m[n])m[n]={up:0,down:0};m[n][x.v]++});return m})}
 function markSub(id,st){return adminOnly()||withRetry(function(){return B.db.doc('submissions/'+id).update({st:st})})}
 
 function sendClue(d){return withRetry(function(){return B.db.collection('submissions').add({u:B.uid,al:d.pub?store.alias:'',pub:!!d.pub,text:d.text,answer:d.answer,mechs:d.mechs.join(','),seg:JSON.stringify(d.seg),exp:d.exp,hd:d.hd||'',hi:d.hi||'',hm:d.hm||'',extra:JSON.stringify(d.extra||[]),notes:d.notes||'',t:d.t,st:'pendiente'})})}
@@ -224,6 +227,7 @@ MC.base={
   envios:function(){return listOf('submissions')},
   comentarios:function(){return listOf('feedback')},
   marcarEnvio:markSub,
+  votos:countVotes,
   motivo:reason
 };
 })(window.MC);

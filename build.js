@@ -32,6 +32,13 @@ fs.mkdirSync(OUT);
 fs.writeFileSync(path.join(OUT, jsName), js);
 fs.writeFileSync(path.join(OUT, cssName), css);
 fs.writeFileSync(path.join(OUT, 'index.html'), html);
-['404.html', 'favicon.svg', '.nojekyll'].forEach(f => { if (fs.existsSync(path.join(ROOT, f))) fs.copyFileSync(path.join(ROOT, f), path.join(OUT, f)); });
+['404.html', 'favicon.svg', '.nojekyll', 'manifest.webmanifest'].forEach(f => { if (fs.existsSync(path.join(ROOT, f))) fs.copyFileSync(path.join(ROOT, f), path.join(OUT, f)); });
+fs.cpSync(path.join(ROOT, 'img'), path.join(OUT, 'img'), { recursive: true });
+
+// Service worker con la versión de esta compilación y los archivos para usar sin internet
+const precache = ['./', jsName, cssName, 'favicon.svg', 'manifest.webmanifest', 'img/icono-192.png', 'img/icono-512.png'];
+const sw = read('sw.js').replace("/*VERSION*/'dev'", JSON.stringify('cripteando-' + huella(js + css))).replace('/*PRECACHE*/[]', JSON.stringify(precache));
+if (sw.includes("'dev'") || sw.includes('/*PRECACHE*/')) throw new Error('No pude completar sw.js');
+fs.writeFileSync(path.join(OUT, 'sw.js'), esbuild.transformSync(sw, { minify: true, target: 'es2017' }).code);
 
 console.log('Listo: dist/' + jsName + ' (' + (js.length / 1024).toFixed(1) + ' KB) y dist/' + cssName + ' (' + (css.length / 1024).toFixed(1) + ' KB)');

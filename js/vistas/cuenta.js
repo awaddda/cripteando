@@ -54,6 +54,11 @@ function vAccount(){var S=MC.S,con=MC.base.conectada(),u=MC.base.usuario(),h='';
      :'<p class="muted">Iniciá sesión para mandarnos comentarios.</p>');
 
   h+=sec('Apariencia','Elegí cómo se ve la página.','<div class="themes" role="group" aria-label="Tema">'+THEMES.map(function(t){return '<button class="theme" data-act="theme" data-v="'+t[0]+'" aria-pressed="'+(store.theme===t[0])+'">'+svg(t[2])+'<span>'+t[1]+'</span></button>'}).join('')+'</div>');
+  // Instalar como app: botón donde el navegador lo permite, instrucciones en iPhone y nada si ya está instalada
+  var instalada=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone,ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
+  if(!instalada)h+=sec('Instalar la app','Tené Cripteando en la pantalla de inicio de tu celular, con su ícono, y abrila a pantalla completa.',
+    MC.instalar?'<div><button class="btn pri" data-act="install">Instalar Cripteando</button></div>':
+    (ios?'<p>En Safari, tocá <b>Compartir</b> (el cuadrado con la flecha) y después <b>Agregar a inicio</b>.</p>':'<p>Desde el menú del navegador, elegí <b>Instalar app</b> o <b>Agregar a la pantalla de inicio</b>.</p>'));
 
   if(con&&u&&MC.base.esAdmin())h+=sec('Administración','Editá las pistas, programá las próximas y revisá lo que te mandan los jugadores.','<div><button class="btn" data-act="go" data-v="admin">Administrar pistas</button></div>');
 
