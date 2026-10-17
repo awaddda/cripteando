@@ -85,6 +85,7 @@ nav>:first-child{margin-left:auto}nav>:last-child{margin-right:auto}
 .note.warn{background:var(--bad-soft)}
 .note.ok{background:var(--ok-soft)}
 .account>.note,.send>.note{margin:14px 0}
+.note+.note{margin-top:10px}
 .note+.tabs2{margin-top:16px}
 .btn-google{gap:10px}
 .g-logo{flex:none}

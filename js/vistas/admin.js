@@ -62,12 +62,12 @@ function editor(e){var S=MC.S,T=today(),role=S.arole===undefined?'def':S.arole,c
 
 function vAdmin(){var S=MC.S,ad=A();
   if(!MC.base.esAdmin())return '<div class="empty"><b>Esta sección es solo para administrar la página</b>Iniciá sesión con la cuenta de administración.</div><p style="text-align:center;margin-top:16px"><button class="link" data-act="go" data-v="cuenta">Ir a Cuenta</button></p>';
-  if(S.ae)return editor(S.ae);
+  if(S.ae)return wrap(editor(S.ae));
   var T=today(),h='<button class="link" data-act="go" data-v="cuenta">Volver a Cuenta</button><h1 class="page-title" style="margin-top:10px">Administrar pistas</h1><p class="lead">Editá las pistas, programá las próximas y revisá lo que te mandan los jugadores.</p>';
   h+='<div class="row-wrap"><button class="btn pri" data-act="anew">Nueva pista</button><button class="btn" data-act="aexport"'+(ad.list.length?'':' disabled')+'>Descargar copia</button></div>';
   h+='<p class="msg '+(ad.cls||'')+'" id="adm-msg" role="status" style="text-align:left">'+esc(ad.msg||'')+'</p>';
-  if(ad.st!=='listo'&&ad.st!=='error')return h+'<div class="empty" role="status"><b>Cargando las pistas…</b></div>';
-  if(ad.st==='error')h+='<div class="note warn">No pude leer las pistas. Revisá que las reglas de Firestore estén publicadas.</div>';
+  if(ad.st!=='listo'&&ad.st!=='error')return wrap(h+'<div class="empty" role="status"><b>Cargando las pistas…</b></div>');
+  if(ad.st==='error')return wrap(h+'<div class="note warn">No pude leer las pistas. Revisá que las reglas de Firestore estén publicadas y recargá la página.</div>'+importBox(S));
   var last=ad.list.length?ad.list[ad.list.length-1].n:0,ahead=last-T;
   h+=ahead>0?'<div class="note ok">Tenés pistas programadas hasta el '+fmtLong(last)+': '+ahead+(ahead===1?' día más.':' días más.')+'</div>':
     '<div class="note warn">'+(ad.list.length?'No hay pistas programadas después de hoy: mañana no sale ninguna.':'Todavía no hay pistas cargadas.')+'</div>';
@@ -79,14 +79,15 @@ function vAdmin(){var S=MC.S,ad=A();
       '<div class="row-wrap" style="margin-top:10px"><button class="btn sm" data-act="asub" data-i="'+i+'">Pasar al editor</button>'+(x.st!=='rechazada'?'<button class="btn sm" data-act="ast" data-i="'+i+'" data-v="rechazada">Rechazar</button>':'')+'</div></li>'}).join('')+'</ul>':'<p class="muted">Todavía nadie mandó pistas.</p>')+'</section>';
   h+='<section class="acc-sec"><h2>Comentarios</h2>'+(ad.fb.length?'<ul class="list">'+ad.fb.map(function(x){
     return '<li class="panel" style="padding:14px 16px"><b>'+esc(x.kind)+'</b><p style="margin:6px 0;white-space:pre-wrap">'+esc(x.msg)+'</p><small class="muted">'+(x.al?esc(x.al)+', ':'')+fecha(x.t)+'</small></li>'}).join('')+'</ul>':'<p class="muted">Todavía no hay comentarios.</p>')+'</section>';
-  var m=S.am&&S.am.id==='ad-out'?S.am:null;
-  h+='<section class="acc-sec"><h2>Importar desde tu compu</h2><p class="muted">Sube las pistas de privado/banco.js y reemplaza las que tengan el mismo número. Funciona solo si abrís la página desde tu compu.</p><div><button class="btn" data-act="upclues">Importar banco.js</button></div>'+
-    '<p class="msg '+(m?m.cls:'')+'" id="ad-out" role="status" style="text-align:left">'+(m?esc(m.t):'')+'</p></section>';
-  return h}
+  return wrap(h+importBox(S))}
+function wrap(h){return '<div class="account">'+h+'</div>'}
+function importBox(S){var m=S.am&&S.am.id==='ad-out'?S.am:null;
+  return '<section class="acc-sec"><h2>Importar desde tu compu</h2><p class="muted">Sube las pistas de privado/banco.js y reemplaza las que tengan el mismo número. Funciona solo si abrís la página desde tu compu.</p><div><button class="btn" data-act="upclues">Importar banco.js</button></div>'+
+    '<p class="msg '+(m?m.cls:'')+'" id="ad-out" role="status" style="text-align:left">'+(m?esc(m.t):'')+'</p></section>'}
 
 function load(){var S=MC.S,ad=A();if(!MC.base.esAdmin()||ad.st==='cargando')return;ad.st='cargando';
   Promise.all([MC.base.todasLasPistas().then(function(l){ad.list=l}),MC.base.envios().then(function(l){ad.subs=l},function(){ad.subs=[]}),MC.base.comentarios().then(function(l){ad.fb=l},function(){ad.fb=[]})])
-    .then(function(){ad.st='listo'},function(){ad.st='error'}).then(function(){if(S.view==='admin'&&!S.ae)MC.render()})}
+    .then(function(){ad.st='listo'},function(e){ad.st='error';try{console.warn('Cripteando, administrar:',e&&e.code||e,e&&e.message||'')}catch(x){}}).then(function(){if(S.view==='admin'&&!S.ae)MC.render()})}
 
 function readForm(){var e=MC.S.ae;if(!e)return null;var v=function(id){var x=$('#'+id);return x?x.value:null},y;
   if((y=v('ae-text'))!==null)e.text=y;if((y=v('ae-a'))!==null)e.a=y;if((y=v('ae-m'))!==null)e.m=y;if((y=v('ae-ik'))!==null)e.ik=y;if((y=v('ae-ex'))!==null)e.ex=y;
