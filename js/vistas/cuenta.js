@@ -37,17 +37,18 @@ function vAccount(){var S=MC.S,con=MC.base.conectada(),u=MC.base.usuario(),h='';
     h+=sec('Iniciá sesión','Para guardar tu progreso en la nube, aparecer en la clasificación, jugar en grupos y mandarnos pistas. Para jugar la pista del día no hace falta.',authBox(S));
   }
 
-  h+=sec('Perfil',con&&u?'Tu nombre de usuario aparece en la clasificación, en tus grupos y en las pistas que envíes.':'Tu nombre aparece en las pistas que envíes.',
+  var sinSesion=con&&!u;
+  if(!sinSesion)h+=sec('Perfil',con&&u?'Tu nombre de usuario aparece en la clasificación, en tus grupos y en las pistas que envíes.':'Tu nombre aparece en las pistas que envíes.',
     '<form class="stack" id="f-acc"><div class="field"><label for="a-alias">'+(con&&u?'Nombre de usuario':'Nombre')+'</label><input id="a-alias" maxlength="20" value="'+esc(store.alias)+'" autocomplete="off" autocapitalize="none" spellcheck="false">'+
       (con&&u?'<small>De 3 a 20 letras, números, puntos o guiones bajos. Tiene que ser único.</small>':'<small>Elegí uno que no sea tu nombre completo.</small>')+'</div>'+
     toggle('a-show','Mostrar mi nombre en las pistas que envío',store.showName,'showname')+
     '<div class="row-wrap"><button class="btn pri" type="submit" id="a-save" disabled>Guardar perfil</button></div>'+out('a-msg',S)+'</form>');
 
-  h+=sec('Racha','','<p>Racha actual <b>'+MC.streak()+'</b> · máxima <b>'+MC.bestStreak()+'</b>. <button class="link" data-act="go" data-v="estadisticas">Ver estadísticas</button></p>');
+  if(!sinSesion)h+=sec('Racha','','<p>Racha actual <b>'+MC.streak()+'</b> · máxima <b>'+MC.bestStreak()+'</b>. <button class="link" data-act="go" data-v="estadisticas">Ver estadísticas</button></p>');
 
   if(con&&u)h+=sec('Preferencias','',toggle('a-pub','Aparecer en la clasificación pública',store.pub,'pub')+'<small class="muted">Si lo desactivás, tus resultados dejan de verse en la clasificación y en tus grupos.</small>');
 
-  if(con)h+=sec('Enviar comentarios','Contanos qué te gusta, qué no funciona o qué te gustaría ver.',
+  if(con&&u)h+=sec('Enviar comentarios','Contanos qué te gusta, qué no funciona o qué te gustaría ver.',
     u?'<form class="stack" id="f-fb"><div class="field"><label for="fb-kind">Tipo</label><select id="fb-kind">'+KINDS.map(function(k){return '<option>'+k+'</option>'}).join('')+'</select></div>'+
       '<div class="field"><label for="fb-msg">Mensaje</label><textarea id="fb-msg" rows="4" maxlength="1000" placeholder="Contanos qué te gusta, qué falla o qué mejorarías…"></textarea></div>'+
       '<div><button class="btn" type="submit">Enviar comentario</button></div><p class="msg" id="fb-out" role="status" style="text-align:left"></p></form>'

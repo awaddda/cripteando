@@ -45,6 +45,13 @@ var fontsOk=!(window.document&&document.fonts&&document.fonts.load),splashWanted
     Promise.all(['500 16px Figtree','700 16px Figtree','400 42px Newsreader','400 16px "DM Mono"'].map(function(f){return document.fonts.load(f)})).then(done,done)})()})();
 function hideSplash(){if(!fontsOk){splashWanted=true;return}var el=document.getElementById('splash');if(!el||el.className.indexOf('out')>-1)return;el.className+=' out';
   setTimeout(function(){el.className+=' go';replayEnd();setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},450)},Math.max(0,SPLASH-(window.performance?performance.now()-(window.MC_T0||0):0)))}
+// Pantalla de carga al iniciar sesión o crear cuenta: tapa el momento en que todavía no llegaron el nombre, la foto y el progreso
+var cuentaT0=0;
+function splashOn(){var old=document.getElementById('splash-cuenta');if(old){if(old.className.indexOf('out')<0)return;old.parentNode.removeChild(old)}var d=document.createElement('div');d.id='splash-cuenta';d.className='splash';
+  d.setAttribute('role','status');d.setAttribute('aria-label','Cargando');d.innerHTML=MC.LD_SVG;document.body.appendChild(d);cuentaT0=Date.now()}
+// ya: sin el mínimo de 1 s (cuando hubo un error, la pantalla se va enseguida)
+function splashOff(ya){var el=document.getElementById('splash-cuenta');if(!el||el.className.indexOf('out')>-1)return;el.className+=' out';
+  setTimeout(function(){el.className+=' go';setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},450)},ya?0:Math.max(0,1000-(Date.now()-cuentaT0)))}
 // Al entrar con la pista ya terminada, repite la animación del final (letras, partes y resultado) mientras se va la pantalla de carga
 function replayEnd(){if(S.view!=='hoy'||editing()||!MC.clueOf(S.cur)||!MC.prog(S.cur).done)return;S.fresh='end';render()}
 setTimeout(hideSplash,8000);
@@ -92,7 +99,7 @@ document.addEventListener('click',function(e){var t=e.target.closest('[data-act]
   else if(a==='give-yes')MC.giveUp();
   else if(a==='bk'){S.bk=!S.bk;render()}
   else if(a==='vote')MC.vote(t.dataset.v);
-  else if(a==='login'){S.amsg='';t.disabled=true;MC.base.entrar().catch(function(err){S.amsg=MC.base.motivoSesion(err);render()})}
+  else if(a==='login'){S.amsg='';t.disabled=true;splashOn();MC.base.entrar().catch(function(err){splashOff(true);S.amsg=MC.base.motivoSesion(err);render()})}
   else if(a==='logout'){MC.base.salir().then(function(){go('cuenta')},function(){go('cuenta')})} // al cerrar sesión: Cuenta, arriba de todo
   else if(a==='theme'){store.theme=t.dataset.v||'';save();applyTheme();render()}
   else if(a==='pub'){MC.base.publico(t.checked)}
@@ -139,10 +146,10 @@ document.addEventListener('submit',function(e){e.preventDefault();var id=e.targe
   else if(id==='f-fb'){var k=$('#fb-kind').value,msg=($('#fb-msg').value||'').trim(),out=$('#fb-out');if(msg.length<5){if(out){out.textContent='Contanos un poco más: el mensaje es muy corto.';out.className='msg bad'}return}
     MC.base.enviarComentario(k,msg).then(function(){$('#fb-msg').value='';if($('#fb-out')){$('#fb-out').textContent='Gracias, lo leemos todo.';$('#fb-out').className='msg ok'}}).catch(function(err){if($('#fb-out')){$('#fb-out').textContent='No pude enviarlo: '+MC.base.motivo(err);$('#fb-out').className='msg bad'}})}
   else if(id==='f-login'){var le=$('#l-email').value,lp=$('#l-pass').value;if(!le||!lp)return say('a-out','Escribí tu email y tu contraseña.');
-    MC.base.entrarConEmail(le,lp).catch(function(err){say('a-out',MC.base.motivoSesion(err))})}
+    splashOn();MC.base.entrarConEmail(le,lp).catch(function(err){splashOff(true);say('a-out',MC.base.motivoSesion(err))})}
   else if(id==='f-signup'){var un=$('#u-name').value,ue=$('#u-email').value,up=$('#u-pass').value;
     if(!MC.base.nombreValido(un))return say('a-out',MC.base.motivoSesion({code:'name-invalid'}));if(!ue)return say('a-out','Escribí tu email.');if(up.length<6)return say('a-out',MC.base.motivoSesion({code:'auth/weak-password'}));
-    say('a-out','Creando tu cuenta…','ok');MC.base.crearCuenta(un,ue,up).then(function(){render()}).catch(function(err){var t=MC.base.motivoSesion(err);if(MC.base.lista()){S.am={id:'a-msg',t:t,cls:'bad'};render()}else say('a-out',t)})}
+    say('a-out','Creando tu cuenta…','ok');splashOn();MC.base.crearCuenta(un,ue,up).then(function(){render();splashOff()}).catch(function(err){splashOff(true);var t=MC.base.motivoSesion(err);if(MC.base.lista()){S.am={id:'a-msg',t:t,cls:'bad'};render()}else say('a-out',t)})}
   else if(id==='f-forgot'){var fe=$('#f-email').value;if(!fe)return say('a-out','Escribí tu email.');
     var sent=function(){say('a-out','Listo: si hay una cuenta con ese email, te llega el enlace en unos minutos.','ok')};
     MC.base.recuperarClave(fe).then(sent).catch(function(err){if(err&&err.code==='auth/user-not-found')sent();else say('a-out',MC.base.motivoSesion(err))})}
@@ -184,7 +191,7 @@ if(!MC.clueOf(S.cur))S.pz='cargando';
 render();
 // Primera visita: la pista de hoy por el camino corto, sin esperar a que se descargue y arranque Firebase
 if(!MC.clueOf(S.cur))MC.base.pistaRapida().then(function(ok){if(ok&&S.pz==='cargando'){S.pz='listo';if(!editing())render()}});
-MC.base.conectar(refreshLive,function(){S.amsg='';S.am=null;S.adm=null;S.ae=null;applyTheme();if(editing()&&S.view!=='cuenta')refreshLive();else render()}).then(function(){
+MC.base.conectar(refreshLive,function(){S.amsg='';S.am=null;S.adm=null;S.ae=null;applyTheme();if(editing()&&S.view!=='cuenta')refreshLive();else render();splashOff()}).then(function(){
   var mine=Object.keys(store.hist).map(Number).concat([today()]);
   var go2=function(){if(!editing())render();else refreshLive()};
   if(!MC.base.conectada()){S.pz=MC.clueOf(S.cur)?'listo':'error';go2();return}

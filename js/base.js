@@ -49,13 +49,13 @@ function init(cfg){
   return new Promise(function(res){var first=true;
     B.auth.onAuthStateChanged(function(u){B.user=u||null;B.uid=u?u.uid:null;
       if(u)syncIn().then(function(){return B.creating?null:ensureAlias()}).then(function(){publish(today());if(!B.creating)alSesion()});
-      if(first){first=false;res()}else if(!B.creating)alSesion()},function(){if(first){first=false;res()}})})}
+      if(first){first=false;res()}else if(!B.creating&&!u)alSesion()},function(){if(first){first=false;res()}})})}
 function login(){if(!B.auth)return Promise.reject({code:'no-config'});var p=new firebase.auth.GoogleAuthProvider();
   return B.auth.signInWithPopup(p).catch(function(e){var c=e&&e.code||'';
     if(c==='auth/popup-blocked'||c==='auth/operation-not-supported-in-this-environment'||c==='auth/cancelled-popup-request')return B.auth.signInWithRedirect(p);
     throw e})}
 function wipeLocal(){store.hist={};store.prog={};store.learn={};store.votes={};store.subs=[];store.groups=[];store.draft={};store.uname='';store.photo='';store.pub=true;store.showName=true;
-  store.alias='Jugador'+(100+Math.floor(Math.random()*900));for(var k in B.unsub){try{B.unsub[k]()}catch(e){}}B.unsub={};B.groups={};B.gmem={};MC.save()}
+  store.owner='';store.alias='Jugador'+(100+Math.floor(Math.random()*900));for(var k in B.unsub){try{B.unsub[k]()}catch(e){}}B.unsub={};B.groups={};B.gmem={};MC.save()}
 function logout(){clearTimeout(upT);var go=B.uid?upload():Promise.resolve();return go.then(function(){return B.auth?B.auth.signOut():null}).then(wipeLocal)}
 var loginReason=function(e){var c=e&&e.code||'';try{console.warn('Cripteando, sesión:',c||e,e&&e.message||'')}catch(x){}
   if(c==='auth/popup-closed-by-user')return 'Cerraste la ventana antes de terminar. Probá de nuevo.';
@@ -102,10 +102,19 @@ function setPhoto(dataUrl){store.photo=dataUrl||'';MC.save();return publish(toda
 
 var SYNC=['hist','prog','learn','votes','subs'],upT=null,syncing=false;
 function cloudDoc(){return {hist:store.hist,prog:store.prog,learn:store.learn,votes:store.votes,subs:store.subs.slice(-50),alias:store.alias,uname:store.uname||'',photo:store.photo||'',pub:!!store.pub,showName:!!store.showName,theme:store.theme||'',u:Date.now()}}
-function mergeCloud(r){if(!r||typeof r!=='object')return;var rh=r.hist||{},rp=r.prog||{},k;
-  for(k in rh){var l=store.hist[k],x=rh[k];if(!x||typeof x!=='object')continue;
-    if(!l||(x.r==='w'&&l.r!=='w')||(x.r===l.r&&(x.a|0)<(l.a|0))){store.hist[k]=x;if(rp[k])store.prog[k]=rp[k]}}
-  for(k in rp)if(!store.prog[k]&&!store.hist[k])store.prog[k]=rp[k];
+// Partidas: si los datos locales son de esta misma cuenta (jugó con sesión y no llegó a subirse), se queda con el mejor resultado.
+// Si se jugaron sin sesión o con otra cuenta, en las pistas que la cuenta ya empezó o terminó gana la cuenta (lo local se descarta);
+// las que la cuenta nunca tocó se suman. Así no se puede rehacer una pista sin sesión para mejorar intentos o ayudas.
+var touched=function(p){return !!(p&&typeof p==='object'&&((Array.isArray(p.g)&&p.g.length)||p.hd||p.hi||p.hm||p.hl||p.done))};
+function mergeCloud(r){if(!r||typeof r!=='object')return;var rh=r.hist||{},rp=r.prog||{},k,mine=!!store.owner&&store.owner===B.uid;
+  if(mine){
+    for(k in rh){var l=store.hist[k],x=rh[k];if(!x||typeof x!=='object')continue;
+      if(!l||(x.r==='w'&&l.r!=='w')||(x.r===l.r&&(x.a|0)<(l.a|0))){store.hist[k]=x;if(rp[k])store.prog[k]=rp[k]}}
+    for(k in rp)if(!store.prog[k]&&!store.hist[k])store.prog[k]=rp[k];
+  }else{
+    for(k in rh){if(!rh[k]||typeof rh[k]!=='object')continue;store.hist[k]=rh[k];if(rp[k])store.prog[k]=rp[k]}
+    for(k in rp)if(!rh[k]&&touched(rp[k])){store.prog[k]=rp[k];delete store.hist[k]}
+  }
   var rl=r.learn||{};for(k in rl){if(!store.learn[k])store.learn[k]={};for(var j in rl[k])store.learn[k][j]=true}
   var rv=r.votes||{};for(k in rv)if(!(k in store.votes))store.votes[k]=rv[k];
   var seen={};store.subs.forEach(function(s){seen[s.t]=1});(Array.isArray(r.subs)?r.subs:[]).forEach(function(s){if(s&&!seen[s.t])store.subs.push(s)});store.subs.sort(function(a,b){return a.t-b.t});
@@ -117,7 +126,7 @@ function mergeCloud(r){if(!r||typeof r!=='object')return;var rh=r.hist||{},rp=r.
 function upload(){if(!B.db||!B.uid)return Promise.resolve();return withRetry(function(){return B.db.doc('saves/'+B.uid).set(cloudDoc())}).catch(function(){})}
 function scheduleUpload(){if(syncing||!B.db||!B.uid)return;clearTimeout(upT);upT=setTimeout(upload,1500)}
 function syncIn(){if(!B.db||!B.uid)return Promise.resolve();syncing=true;
-  return withRetry(function(){return B.db.doc('saves/'+B.uid).get()}).then(function(s){if(s.exists)mergeCloud(s.data());MC.save();syncing=false;return upload()})
+  return withRetry(function(){return B.db.doc('saves/'+B.uid).get()}).then(function(s){if(s.exists)mergeCloud(s.data());store.owner=B.uid;MC.save();syncing=false;return upload()})
   .catch(function(){syncing=false})}
 MC.alGuardar=scheduleUpload;
 

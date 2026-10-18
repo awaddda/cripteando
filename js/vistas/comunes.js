@@ -42,6 +42,7 @@ MC.desglose=desglose;
 MC.ansBox=ansBox;
 MC.firma=firma;
 MC.loader=loader;
+MC.LD_SVG=LD_SVG;
 
 MC.statusNote=statusNote;
 MC.avatar=avatar;

@@ -1,6 +1,6 @@
 (function(MC){
 'use strict';
-var store={alias:'',color:0,hist:{},prog:{},groups:[],subs:[],learn:{},votes:{},pub:true,showName:true,theme:'',draft:{},uname:'',photo:''};
+var store={alias:'',color:0,hist:{},prog:{},groups:[],subs:[],learn:{},votes:{},pub:true,showName:true,theme:'',draft:{},uname:'',photo:'',owner:''};
 MC.store=store;
 MC.mem=false;
 
