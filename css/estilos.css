@@ -401,10 +401,10 @@ img.av{display:block;background:var(--surface-2)}
 .st-fact{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
 .st-fact b{font:700 24px var(--font-body);font-variant-numeric:tabular-nums}
 .st-fact span{font-size:13px;color:var(--ink-2)}
-.cal-ms{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px 32px}
+.cal-ms{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:24px 32px}
 .cal-m h3{font-size:15px;font-weight:600;margin:0 0 10px}
 .cal-m h3::first-letter{text-transform:uppercase}
-.cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-g{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .cal-w{font-size:12px;font-weight:600;color:var(--ink-2);text-align:center}
 .cal-d,.cal-x{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 2px 3px;border-radius:12px;min-width:0}
 .cal-d{border:1px solid transparent;background:none;color:inherit;cursor:pointer}
