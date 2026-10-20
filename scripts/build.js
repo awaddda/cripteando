@@ -2,10 +2,11 @@
 // junta los JS de index.html (en el mismo orden) en un solo archivo comprimido, hace lo mismo con el CSS,
 // les pone un nombre con la huella del contenido (así el navegador los guarda hasta que cambian) y copia el resto.
 // En la compu se sigue trabajando con los archivos sueltos; esto lo corre GitHub al publicar (ver .github/workflows).
+// Uso: npm run build
 'use strict';
 const fs = require('fs'), path = require('path'), crypto = require('crypto'), esbuild = require('esbuild');
 
-const ROOT = __dirname, OUT = path.join(ROOT, 'dist');
+const ROOT = path.resolve(__dirname, '..'), OUT = path.join(ROOT, 'dist');
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const huella = s => crypto.createHash('sha256').update(s).digest('hex').slice(0, 10);
 
@@ -32,7 +33,7 @@ fs.mkdirSync(OUT);
 fs.writeFileSync(path.join(OUT, jsName), js);
 fs.writeFileSync(path.join(OUT, cssName), css);
 fs.writeFileSync(path.join(OUT, 'index.html'), html);
-['404.html', 'favicon.svg', '.nojekyll', 'manifest.webmanifest'].forEach(f => { if (fs.existsSync(path.join(ROOT, f))) fs.copyFileSync(path.join(ROOT, f), path.join(OUT, f)); });
+['404.html', 'favicon.svg', 'manifest.webmanifest'].forEach(f => { if (fs.existsSync(path.join(ROOT, f))) fs.copyFileSync(path.join(ROOT, f), path.join(OUT, f)); });
 fs.cpSync(path.join(ROOT, 'img'), path.join(OUT, 'img'), { recursive: true });
 
 // Service worker con la versión de esta compilación y los archivos para usar sin internet

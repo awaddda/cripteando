@@ -1,20 +1,13 @@
 (function(MC){
 'use strict';
-var $=MC.$, esc=MC.esc, norm=MC.norm, store=MC.store, save=MC.save, MECHS=MC.MECHS;
-var RL={def:'Definición',mat:'Relleno',ind:'Indicador'};
+var $=MC.$, esc=MC.esc, norm=MC.norm, store=MC.store, save=MC.save, MECHS=MC.MECHS, RL=MC.RL, syncRoles=MC.syncRoles, segments=MC.segmentos;
 var HELP={def:['s-hd','hd','Qué significa la definición. Por ejemplo: «Para tomar con bombilla» describe un MATE.'],ind:['s-hi','hi','Qué pide el indicador. Por ejemplo: «confuso» pide un anagrama.'],mat:['s-hm','hm','Qué hay que hacer con el relleno. Por ejemplo: las letras de TEMA se reordenan.']};
 
 function draft(){var d=store.draft;if(!d||typeof d!=='object'||Array.isArray(d))d=store.draft={};
   if(!Array.isArray(d.mechs))d.mechs=[];if(!Array.isArray(d.roles))d.roles=[];if(!Array.isArray(d.extra))d.extra=[];return d}
-function wordsOf(t){return String(t||'').replace(/\(\s*\d+(\s*,\s*\d+)*\s*\)\s*$/,'').split(/\s+/).filter(Boolean)}
-function syncRoles(d){var w=wordsOf(d.text),old=d.roles,out=[];
-  for(var i=0;i<w.length;i++)out.push({w:w[i],r:old[i]&&old[i].w===w[i]?old[i].r:''});d.roles=out;return out}
-function segments(d){var t=[];syncRoles(d).forEach(function(x){var last=t[t.length-1];if(last&&last[1]===x.r)last[0]+=' '+x.w;else t.push([x.w,x.r])});return t}
 function marked(d){var o={};d.roles.forEach(function(x){if(x.r)o[x.r]=true});return o}
 
-function tokensHtml(d){var w=syncRoles(d);
-  if(!w.length)return '<p class="muted">Cuando escribas el enunciado, sus palabras aparecen acá.</p>';
-  return '<div class="toks">'+w.map(function(x,i){return '<button type="button" class="tok'+(x.r?' r-'+x.r:'')+'" data-act="sword" data-i="'+i+'" aria-pressed="'+!!x.r+'"'+(x.r?' title="'+RL[x.r]+'"':'')+'>'+esc(x.w)+'</button>'}).join('')+'</div>'}
+function tokensHtml(d){return MC.tokensHtml(d,'sword')}
 function helpsHtml(d){var m=marked(d),h='';
   ['def','ind','mat'].forEach(function(r){if(!m[r])return;var x=HELP[r];
     h+='<div class="field"><label for="'+x[0]+'"><span class="rchip r-'+r+'">'+RL[r]+'</span></label><textarea id="'+x[0]+'" rows="2" maxlength="300" placeholder="'+esc(x[2])+'">'+esc(d[x[1]]||'')+'</textarea></div>'});
@@ -34,7 +27,7 @@ function autosave(){clearTimeout(saveT);saveT=setTimeout(function(){readForm();d
 function preview(d){var t=segments(d),ans=norm(d.ans);
   if(!t.length||!ans)return '<div class="empty"><b>Todavía no hay nada para mostrar</b>Completá el enunciado y la respuesta para ver cómo la verían los jugadores.</div>';
   var shown={def:1,ind:1,mat:1};
-  var clue=t.map(function(x){return x[1]?'<mark class="seg m-'+x[1]+'">'+esc(x[0])+'</mark>':esc(x[0])}).join(' ')+' <span class="len">('+ans.length+')</span>';
+  var clue=MC.clueHtml(t,ans.length);
   var helps='';['def','ind','mat'].forEach(function(r){var tx=d[HELP[r][1]];if(tx&&tx.trim())helps+='<div class="bk"><span class="rchip r-'+r+'">Ayuda: '+RL[r]+'</span><p>'+esc(tx)+'</p></div>'});
   d.extra.forEach(function(e,i){if(e&&e.trim())helps+='<div class="bk"><span class="rchip r-how">Ayuda extra '+(i+1)+'</span><p>'+esc(e)+'</p></div>'});
   return '<div class="spreview"><p class="muted" style="text-align:center">Así la verían los jugadores:</p>'+MC.chips(t,shown)+'<p class="clue">'+clue+'</p>'+
@@ -55,7 +48,7 @@ function vSend(){var S=MC.S,d=draft(),u=MC.base.usuario(),tab=S.stab==='preview'
   h+='<section class="acc-sec"><h2>Anatomía</h2>'+
     '<div class="field"><label for="s-exp">Explicación del desglose</label><textarea id="s-exp" rows="3" maxlength="400" placeholder="Cómo se arma la respuesta. Por ejemplo: las letras de TEMA, «confuso», se reordenan en MATE.">'+esc(d.exp||'')+'</textarea></div>'+
     '<div class="field"><label>Editor de segmentos</label><small>Elegí un rol y tocá las palabras del enunciado. Marcar la definición es obligatorio.</small>'+
-    '<div class="roles" role="group" aria-label="Rol a marcar">'+[['def','Definición'],['mat','Relleno'],['ind','Indicador'],['','Borrar']].map(function(r){var on=(S.srole===undefined?'def':S.srole)===r[0];return '<button type="button" class="rchip'+(r[0]?' r-'+r[0]:' r-how')+(on?' on':'')+'" data-act="srole" data-v="'+r[0]+'" aria-pressed="'+on+'">'+r[1]+'</button>'}).join('')+'</div>'+
+    MC.rolesHtml(S.srole===undefined?'def':S.srole,'srole')+
     '<div id="s-tokens">'+tokensHtml(d)+'</div></div>'+
     '<div id="s-check" class="note" aria-live="polite"></div></section>';
   h+='<section class="acc-sec"><h2>Ayudas</h2><p class="muted">Escribí una ayuda por cada rol que marcaste. Son las que ve el jugador cuando las pide.</p><div id="s-helps" class="stack">'+helpsHtml(d)+'</div>'+
@@ -68,7 +61,7 @@ function vSend(){var S=MC.S,d=draft(),u=MC.base.usuario(),tab=S.stab==='preview'
     '<div class="row-wrap"><button class="btn pri" type="submit">Enviar pista</button></div><p class="msg '+(S.scls||'')+'" id="s-msg" role="status" aria-live="polite" style="text-align:left">'+esc(S.smsg||'')+'</p></section></form>';
   return h+subs}
 
-function verify(text,ans,mechs){var w=wordsOf(text),lines=[];
+function verify(text,ans,mechs){var w=MC.palabras(text),lines=[];
   var mm=text.match(/\((\d+)\)\s*$/);
   var grp=function(f){for(var i=0;i<w.length;i++)for(var j=i+1;j<=Math.min(w.length,i+5);j++){if(f(w.slice(i,j)))return w.slice(i,j).join(' ')}return null};
   var sorted=function(s){return s.split('').sort().join('')},bad=false,any=false;
@@ -118,7 +111,6 @@ function clickSend(a,t){var S=MC.S,d=readForm();
 
 MC.vSend=vSend;
 MC.verificar=verify;
-MC.palabras=wordsOf;
 MC.checkSend=checkSend;
 MC.sendClue=sendClue;
 MC.sendAutosave=autosave;

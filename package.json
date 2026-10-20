@@ -1,9 +1,9 @@
 {
   "name": "cripteando",
   "private": true,
-  "description": "Compila la página para publicarla: junta y comprime los JS y el CSS en archivos con nombre de huella.",
+  "description": "Cripteando: una pista críptica nueva por día.",
   "scripts": {
-    "build": "node build.js"
+    "build": "node scripts/build.js"
   },
   "devDependencies": {
     "esbuild": "^0.25.10"

@@ -30,12 +30,24 @@ function desglose(t,ik,ex){var d=partsOf(t,'def'),i=partsOf(t,'ind'),m=partsOf(t
   h+=bkSection('def','Definición',d.length>1?quote(d)+' son dos definiciones: la respuesta tiene que significar las dos cosas.':'Estas palabras forman nuestra definición, y la respuesta será algo que signifique '+quote(d)+'.');
   if(ex)h+=bkSection('how','Cómo se arma',ex);
   return '<div class="bkd">'+h+'</div>'}
-// Pantalla de carga: un termo cebando el mate del logo
-var LD_SVG='<svg class="ld-mate" viewBox="8 -7 100.4 96" aria-hidden="true"><g class="ld-tm"><g transform="translate(15.48 28.45)"><path class="ld-tm-h" d="M-5.5 -28.4h-2.4a1.4 1.4 0 0 0-1.4 1.4V-15.6"/><rect class="ld-tb" x="-5.5" y="-30.4" width="11" height="30.4" rx="1.8"/><path class="ld-tl" d="M-5.5 -2.2h11"/><rect class="ld-tn" x="-5" y="-32.2" width="10" height="2.2" rx=".6"/><rect class="ld-tn" x="-4.3" y="-33.8" width="8.6" height="1.9" rx=".5"/><rect class="ld-tc" x="-4.8" y="-37.4" width="9.6" height="3.8" rx=".8"/><path class="ld-tl" d="M-2.6 -36.8v2.6M0 -36.8v2.6M2.6 -36.8v2.6"/><path class="ld-tbt" d="M.6 -37.6 4.4 -39.8"/></g></g><g transform="translate(42.2 21.5) scale(.8)"><path class="ld-cal" d="M10.5 18.5C7 23.5 6.2 30 10 34c3.4 3.4 16.6 3.4 20 0 3.8-4 3-10.5-.5-15.5z"/><rect class="ld-vir" x="9" y="15.6" width="22" height="3.6" rx="1.6"/><path class="ld-bom" d="M21.5 15 27.6 5.2c.6-1 1.6-1.4 3.4-1.4"/><path class="ld-yer" d="M10.6 16.2C14 11.4 26 11.4 29.4 16.2z"/><path class="ld-vap" d="M14 11c-1.6-1.7 1.6-3.4 0-5.1"/><path class="ld-vap v2" d="M18 11c-1.6-1.7 1.6-3.4 0-5.1"/></g><g class="ld-agw"><path class="ld-ag" pathLength="1" d="M52.56 13.33c1.5.9 2.4 3.1 2.5 7L55 32"/></g><ellipse class="ld-sp" cx="55" cy="32.2" rx="2.6" ry=".8"/><ellipse class="ld-sp s2" cx="55" cy="32.2" rx="2.6" ry=".8"/></svg>';
+// Pantalla de carga: un termo cebando el mate del logo. El dibujo es el mismo de la pantalla de carga de index.html
+var LD_SVG=(document.querySelector('#splash svg')||{}).outerHTML||'';
 function loader(){return '<div class="loader" role="status" aria-label="Cargando">'+LD_SVG+'</div>'}
 // Firma: las de la casa dicen «Pista de Cripteando»; las enviadas, quién la mandó o que es anónima
 function firma(c){if(!c)return '';if(typeof c.por!=='string')return '<p class="firma">Pista de <b>Cripteando</b></p>';return '<p class="firma">'+(c.por?'Pista enviada por <b>'+esc(c.por)+'</b>':'Pista enviada de forma anónima')+'</p>'}
 function ansBox(a){return '<div class="ansbox"><span>Respuesta:</span> <b>'+esc(a)+'</b></div>'}
+// Editor de pistas (enviar y administrar): palabras del enunciado, cada una con su rol
+function palabras(t){return String(t||'').replace(/\(\s*\d+(\s*,\s*\d+)*\s*\)\s*$/,'').split(/\s+/).filter(Boolean)}
+function syncRoles(e){var w=palabras(e.text),old=e.roles,out=[];
+  for(var i=0;i<w.length;i++)out.push({w:w[i],r:old[i]&&old[i].w===w[i]?old[i].r:''});e.roles=out;return out}
+function segmentos(e){var t=[];syncRoles(e).forEach(function(x){var l=t[t.length-1];if(l&&l[1]===x.r)l[0]+=' '+x.w;else t.push([x.w,x.r])});return t}
+function tokensHtml(e,act){var w=syncRoles(e);
+  if(!w.length)return '<p class="muted">Cuando escribas el enunciado, sus palabras aparecen acá.</p>';
+  return '<div class="toks">'+w.map(function(x,i){return '<button type="button" class="tok'+(x.r?' r-'+x.r:'')+'" data-act="'+act+'" data-i="'+i+'" aria-pressed="'+!!x.r+'"'+(x.r?' title="'+RL[x.r]+'"':'')+'>'+esc(x.w)+'</button>'}).join('')+'</div>'}
+function rolesHtml(role,act){return '<div class="roles" role="group" aria-label="Rol a marcar">'+[['def','Definición'],['mat','Relleno'],['ind','Indicador'],['','Borrar']].map(function(r){var on=role===r[0];
+  return '<button type="button" class="rchip'+(r[0]?' r-'+r[0]:' r-how')+(on?' on':'')+'" data-act="'+act+'" data-v="'+r[0]+'" aria-pressed="'+on+'">'+r[1]+'</button>'}).join('')+'</div>'}
+function clueHtml(t,len){return t.map(function(x){return x[1]?'<mark class="seg m-'+x[1]+'">'+esc(x[0])+'</mark>':esc(x[0])}).join(' ')+' <span class="len">('+len+')</span>'}
+
 MC.RL=RL;
 MC.chips=chips;
 MC.desglose=desglose;
@@ -43,6 +55,12 @@ MC.ansBox=ansBox;
 MC.firma=firma;
 MC.loader=loader;
 MC.LD_SVG=LD_SVG;
+MC.palabras=palabras;
+MC.syncRoles=syncRoles;
+MC.segmentos=segmentos;
+MC.tokensHtml=tokensHtml;
+MC.rolesHtml=rolesHtml;
+MC.clueHtml=clueHtml;
 
 MC.statusNote=statusNote;
 MC.avatar=avatar;

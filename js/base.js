@@ -36,18 +36,20 @@ function groupOf(code){var g=B.groups[code];if(!g)return g;var m={},k,now=B.gmem
 function setMember(code,on){return withRetry(function(){return B.db.doc('members/'+code+'_'+B.uid).set({g:code,u:B.uid,on:on,t:Date.now()})})}
 
 var SDK='https://www.gstatic.com/firebasejs/10.14.1/firebase-';
+// base-local.js se pide con la misma versión (?v=) con la que se cargó este archivo
+var VER=((document.querySelector('script[src*="js/base.js"]')||{}).src||'').replace(/^[^?]*/,'');
 function isLocal(){var l=window.location||{},h=l.hostname||'';return l.protocol==='file:'||h==='localhost'||h==='127.0.0.1'||h==='[::1]'}
 function loadScript(src){return new Promise(function(res,rej){var s=document.createElement('script');s.src=src;s.async=false;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
 function connect(alCambiar,cambioSesion){if(alCambiar)avisar=alCambiar;if(cambioSesion)alSesion=cambioSesion;
   var cfg=window.MC_FIREBASE,ready;
   if(cfg&&cfg.apiKey)ready=window.firebase&&window.firebase.firestore?Promise.resolve():loadScript(SDK+'app-compat.js').then(function(){return Promise.all([loadScript(SDK+'auth-compat.js'),loadScript(SDK+'firestore-compat.js')])});
-  else if(isLocal()){B.local=true;cfg={apiKey:'local'};ready=(window.firebase&&window.firebase.local?Promise.resolve():loadScript('js/base-local.js?v=20261017-53')).then(function(){return loadBank().then(MC.pistasPlanas,function(){})})}
+  else if(isLocal()){B.local=true;cfg={apiKey:'local'};ready=(window.firebase&&window.firebase.local?Promise.resolve():loadScript('js/base-local.js'+VER)).then(function(){return loadBank().then(MC.pistasPlanas,function(){})})}
   else return Promise.resolve();
   return ready.then(function(){return init(cfg)},function(){return null})}
 function init(cfg){
   try{if(!firebase.apps.length)firebase.initializeApp(cfg);B.db=firebase.firestore();B.auth=firebase.auth();try{B.auth.languageCode='es'}catch(e){}}catch(e){B.db=null;B.auth=null;return Promise.resolve()}
   return new Promise(function(res){var first=true;
-    B.auth.onAuthStateChanged(function(u){B.user=u||null;B.uid=u?u.uid:null;
+    B.auth.onAuthStateChanged(function(u){B.user=u||null;B.uid=u?u.uid:null;if(u&&!first&&MC.alIniciar)MC.alIniciar();
       if(u)syncIn().then(function(){return B.creating?null:ensureAlias()}).then(function(){publish(today());if(!B.creating)alSesion()});
       if(first){first=false;res()}else if(!B.creating&&!u)alSesion()},function(){if(first){first=false;res()}})})}
 function login(){if(!B.auth)return Promise.reject({code:'no-config'});var p=new firebase.auth.GoogleAuthProvider();
@@ -163,6 +165,17 @@ function fetchClues(ns){var need=MC.faltan(ns);if(!need.length)return Promise.re
     .then(function(s){var m={};s.docs.forEach(function(d){var x=d.data();if(x&&typeof x.c==='string'&&typeof x.n==='number')m[x.n]=x.c});return MC.guardarPistas(m)},function(e){try{console.warn('Cripteando, pistas:',e&&e.code||e,e&&e.message||'')}catch(x){}throw e})}
 function refreshToday(){if(!B.db)return Promise.resolve(false);var T=today();
   return withRetry(function(){return B.db.doc('pistas/'+T).get()}).then(function(s){if(!s.exists)return false;var x=s.data(),m={};if(x&&typeof x.c==='string'){m[T]=x.c;return MC.guardarPistas(m)}return false},function(){return false})}
+// Pistas de IA (modo experimental): cada una tiene su día de liberación (d); las reglas solo dejan leer las ya liberadas
+function iaList(){if(!B.db)return Promise.reject({code:'unavailable'});var T=today();
+  return withRetry(function(){return B.db.collection('ia').where('d','<=',T).get()}).then(function(s){var out=[];
+    s.docs.forEach(function(d){var x=d.data()||{},c=typeof x.c==='string'?MC.decodificar(x.c):null;if(c&&typeof x.n==='number'){c.n=x.n;c.dif=x.dif;out.push(c)}});return out})}
+function uploadIA(){if(!isAdmin())return Promise.reject({code:'permission-denied'});
+  return loadScript('privado/ia.js?t='+Date.now()).then(function(){if(!Array.isArray(window.MC_IA)||!window.MC_IA.length)throw {code:'no-ia'};return window.MC_IA},function(){throw {code:'no-ia'}})
+    .then(function(list){var T=today(),i=0,n=0;
+      var next=function(){if(i>=list.length)return Promise.resolve();var k=++i,c=list[k-1];if(!MC.pistaValida(c)||['facil','media','dificil'].indexOf(c.dif)<0)return next();
+        var d=T+Math.floor((k-1)/10),dif=c.dif,cc={a:c.a,m:c.m,ik:c.ik||'',t:c.t,ex:c.ex||''};
+        return withRetry(function(){return B.db.doc('ia/'+k).set({n:k,d:d,dif:dif,c:MC.codificar(cc)})}).then(function(){n++;return next()})};
+      return next().then(function(){return {n:n,hasta:T+Math.floor((list.length-1)/10)}})})}
 function quickToday(){var cfg=window.MC_FIREBASE,T=today();if(!cfg||!cfg.projectId||!window.fetch||MC.clueOf(T))return Promise.resolve(false);
   return fetch('https://firestore.googleapis.com/v1/projects/'+encodeURIComponent(cfg.projectId)+'/databases/(default)/documents/pistas/'+T+'?key='+encodeURIComponent(cfg.apiKey||''))
     .then(function(r){return r.ok?r.json():null}).then(function(j){var c=j&&j.fields&&j.fields.c&&j.fields.c.stringValue,m={};if(!c)return false;m[T]=c;MC.guardarPistas(m);return !!MC.clueOf(T)})
@@ -235,6 +248,8 @@ MC.base={
   pistas:fetchClues,
   pistaDeHoy:refreshToday,
   pistaRapida:quickToday,
+  pistasIA:iaList,
+  subirIA:uploadIA,
   revisarPistas:checkEdits,
   esAdmin:isAdmin,
   subirPistas:uploadClues,

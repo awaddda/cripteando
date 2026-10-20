@@ -1,5 +1,5 @@
 // Service worker: permite instalar Cripteando como app y abrirla sin internet.
-// build.js reemplaza VERSION y PRECACHE con los archivos compilados; en la compu no se registra.
+// scripts/build.js reemplaza VERSION y PRECACHE con los archivos compilados; en la compu no se registra.
 'use strict';
 const VERSION = /*VERSION*/'dev';
 const PRECACHE = /*PRECACHE*/[];

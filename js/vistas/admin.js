@@ -1,6 +1,6 @@
 (function(MC){
 'use strict';
-var $=MC.$, esc=MC.esc, norm=MC.norm, today=MC.today, fmtLong=MC.fmtLong, MECHS=MC.MECHS;
+var $=MC.$, esc=MC.esc, norm=MC.norm, today=MC.today, fmtLong=MC.fmtLong, MECHS=MC.MECHS, syncRoles=MC.syncRoles;
 var IK={'Anagrama':'un anagrama','Palabra oculta':'una palabra oculta','Bifronte':'leer al revés','Homófono':'un homófono, algo que suena igual','Charada':'una suma de piezas','Doble definición':''};
 var STL={pendiente:['Pendiente','p'],aceptada:['Aceptada','w'],rechazada:['Rechazada','l']};
 
@@ -16,7 +16,6 @@ function field(id,label,ctrl,small){return '<div class="field"><label for="'+id+
 
 function stars(html){return String(html||'').replace(/<b>([\s\S]*?)<\/b>/gi,'*$1*').replace(/<[^>]+>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&')}
 function unstars(s){return esc(String(s||'').trim()).replace(/\*([^*]+)\*/g,'<b>$1</b>')}
-function syncRoles(e){var w=MC.palabras(e.text),old=e.roles,out=[];for(var i=0;i<w.length;i++)out.push({w:w[i],r:old[i]&&old[i].w===w[i]?old[i].r:''});e.roles=out;return out}
 function fromClue(n,c){var roles=[];c.t.forEach(function(x){MC.palabras(x[0]).forEach(function(w){roles.push({w:w,r:x[1]||''})})});
   return {n:n,isNew:false,a:c.a,m:c.m||'',ik:c.ik||'',text:roles.map(function(x){return x.w}).join(' '),roles:roles,ex:stars(c.ex),pk:typeof c.por!=='string'?'':(c.por?'nombre':'anonima'),por:c.por||''}}
 function fromSub(s){var seg=[];try{seg=JSON.parse(s.seg)||[]}catch(e){}
@@ -24,14 +23,12 @@ function fromSub(s){var seg=[];try{seg=JSON.parse(s.seg)||[]}catch(e){}
   var m=labels.length===1?labels[0]:(labels.length?'Combinada':'');
   var e=fromClue(nextN(),{a:String(s.answer||''),m:m,ik:IK[m]||'',t:Array.isArray(seg)&&seg.length?seg:[[String(s.text||''),'']],ex:''});
   e.isNew=true;e.ex=String(s.exp||'');e.sub=s.id;e.pk=s.pub&&s.al?'nombre':'anonima';e.por=s.pub&&s.al?String(s.al):'';return e}
-function toClue(e){var t=[];syncRoles(e).forEach(function(x){var l=t[t.length-1];if(l&&l[1]===x.r)l[0]+=' '+x.w;else t.push([x.w,x.r])});
+function toClue(e){var t=MC.segmentos(e);
   var c={a:String(e.a||'').trim().toUpperCase(),m:String(e.m||'').trim(),ik:String(e.ik||'').trim(),t:t,ex:unstars(e.ex)};
   if(e.pk==='anonima')c.por='';else if(e.pk==='nombre'&&String(e.por||'').trim())c.por=String(e.por).trim().slice(0,24);
   return c}
 
-function tokens(e){var w=syncRoles(e);
-  if(!w.length)return '<p class="muted">Cuando escribas el enunciado, sus palabras aparecen acá.</p>';
-  return '<div class="toks">'+w.map(function(x,i){return '<button type="button" class="tok'+(x.r?' r-'+x.r:'')+'" data-act="aword" data-i="'+i+'" aria-pressed="'+!!x.r+'"'+(x.r?' title="'+MC.RL[x.r]+'"':'')+'>'+esc(x.w)+'</button>'}).join('')+'</div>'}
+function tokens(e){return MC.tokensHtml(e,'aword')}
 function checkInfo(e){var c=toClue(e),ans=norm(c.a);
   if(!String(e.text||'').trim()||!ans)return {cls:'note',text:'Cuando completes el enunciado y la respuesta, verifico lo que se pueda de forma automática.'};
   var k=MECHS.filter(function(x){return x[1]===c.m})[0],v=MC.verificar(e.text,ans,k?[k[0]]:[]);
@@ -39,7 +36,7 @@ function checkInfo(e){var c=toClue(e),ans=norm(c.a);
   return {cls:v.any?(v.bad?'note warn':'note ok'):'note',text:v.lines.join(' ')}}
 function prev(e){var c=toClue(e),len=norm(c.a).length;
   if(!c.t.length||!len)return '<p class="muted">Completá el enunciado y la respuesta para ver cómo la verían los jugadores.</p>';
-  var clue=c.t.map(function(x){return x[1]?'<mark class="seg m-'+x[1]+'">'+esc(x[0])+'</mark>':esc(x[0])}).join(' ')+' <span class="len">('+len+')</span>';
+  var clue=MC.clueHtml(c.t,len);
   return '<div class="spreview">'+MC.chips(c.t,{def:1,ind:1,mat:1})+'<p class="clue">'+clue+'</p>'+MC.firma(c)+MC.desglose(c.t,c.ik,c.ex)+MC.ansBox(c.a)+'</div>'}
 
 function editor(e){var S=MC.S,T=today(),role=S.arole===undefined?'def':S.arole,ck=checkInfo(e);
@@ -56,7 +53,7 @@ function editor(e){var S=MC.S,T=today(),role=S.arole===undefined?'def':S.arole,c
     field('ae-pk','Quién la escribió','<select id="ae-pk">'+[['','Cripteando'],['nombre','Un jugador, con su nombre'],['anonima','Un jugador, de forma anónima']].map(function(o){return '<option value="'+o[0]+'"'+(o[0]===(e.pk||'')?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select>')+
     field('ae-por','Nombre del autor','<input id="ae-por" maxlength="24" autocomplete="off" value="'+esc(e.por||'')+'"'+(e.pk==='nombre'?'':' disabled')+'>','Aparece debajo de la pista: «Pista enviada por…». Las de Cripteando dicen «Pista de Cripteando».')+'</section>';
   h+='<section class="acc-sec"><h2>Partes</h2><small class="muted">Elegí un rol y tocá las palabras del enunciado. Marcar la definición es obligatorio.</small>'+
-    '<div class="roles" role="group" aria-label="Rol a marcar">'+[['def','Definición'],['mat','Relleno'],['ind','Indicador'],['','Borrar']].map(function(r){var on=role===r[0];return '<button type="button" class="rchip'+(r[0]?' r-'+r[0]:' r-how')+(on?' on':'')+'" data-act="arole" data-v="'+r[0]+'" aria-pressed="'+on+'">'+r[1]+'</button>'}).join('')+'</div>'+
+    MC.rolesHtml(role,'arole')+
     '<div id="ae-tokens">'+tokens(e)+'</div>'+
     field('ae-ex','Cómo se arma','<textarea id="ae-ex" rows="3" maxlength="600">'+esc(e.ex)+'</textarea>','Para resaltar letras, ponelas entre asteriscos: co*PAS MO*jadas.')+
     '<div id="ae-check" class="'+ck.cls+'" aria-live="polite">'+esc(ck.text)+'</div></section>';
@@ -89,7 +86,7 @@ function vAdmin(){var S=MC.S,ad=A();
   return wrap(h+importBox(S))}
 function wrap(h){return '<div class="account">'+h+'</div>'}
 function importBox(S){var m=S.am&&S.am.id==='ad-out'?S.am:null;
-  return '<section class="acc-sec"><h2>Importar desde tu compu</h2><p class="muted">Sube las pistas de privado/banco.js y reemplaza las que tengan el mismo número. Funciona solo si abrís la página desde tu compu.</p><div><button class="btn" data-act="upclues">Importar banco.js</button></div>'+
+  return '<section class="acc-sec"><h2>Importar desde tu compu</h2><p class="muted">Sube las pistas de privado/banco.js y reemplaza las que tengan el mismo número. Funciona solo si abrís la página desde tu compu.</p><div class="row-wrap"><button class="btn" data-act="upclues">Importar banco.js</button><button class="btn" data-act="upia">Importar pistas de IA</button></div><small class="muted">Las de IA salen de privado/ia.js y se liberan de a 10 por día desde hoy.</small>'+
     '<p class="msg '+(m?m.cls:'')+'" id="ad-out" role="status" style="text-align:left">'+(m?esc(m.t):'')+'</p></section>'}
 
 function load(){var S=MC.S,ad=A();if(!MC.base.esAdmin()||ad.st==='cargando')return;ad.st='cargando';

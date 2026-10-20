@@ -61,6 +61,7 @@ function vHoy(){var S=MC.S;
   }
   html+='<div class="meta"><span class="chip">Pista #'+n+'</span><span class="chip">'+MC.mateIco(streak()?'w':'n')+'Racha <b>'+streak()+'</b></span><span class="chip">'+fmtLong(n)+'</span></div>';
   html+='<p class="next">Nueva pista en <span class="cd" id="cd">'+countdown()+'</span> (00:00 hora de Argentina)</p>';
+  html+='<p class="next"><button class="link" data-act="go" data-v="ia">Probá las pistas de IA</button> <span class="tag">Experimental</span></p>';
   return html}
 
 MC.cellsHtml=cellsHtml;

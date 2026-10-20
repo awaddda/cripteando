@@ -45,11 +45,13 @@ var fontsOk=!(window.document&&document.fonts&&document.fonts.load),splashWanted
     Promise.all(['500 16px Figtree','700 16px Figtree','400 42px Newsreader','400 16px "DM Mono"'].map(function(f){return document.fonts.load(f)})).then(done,done)})()})();
 function hideSplash(){if(!fontsOk){splashWanted=true;return}var el=document.getElementById('splash');if(!el||el.className.indexOf('out')>-1)return;el.className+=' out';
   setTimeout(function(){el.className+=' go';replayEnd();setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},450)},Math.max(0,SPLASH-(window.performance?performance.now()-(window.MC_T0||0):0)))}
-// Pantalla de carga al iniciar sesión o crear cuenta: tapa el momento en que todavía no llegaron el nombre, la foto y el progreso
+// Pantalla de carga al iniciar sesión o crear cuenta: aparece cuando la sesión ya se confirmó (no al tocar el botón, así cancelar
+// la ventana de Google nunca la deja trabada) y tapa el momento en que todavía no llegaron el nombre, la foto y el progreso
 var cuentaT0=0;
 function splashOn(){var old=document.getElementById('splash-cuenta');if(old){if(old.className.indexOf('out')<0)return;old.parentNode.removeChild(old)}var d=document.createElement('div');d.id='splash-cuenta';d.className='splash';
   d.setAttribute('role','status');d.setAttribute('aria-label','Cargando');d.innerHTML=MC.LD_SVG;document.body.appendChild(d);cuentaT0=Date.now()}
 // ya: sin el mínimo de 1 s (cuando hubo un error, la pantalla se va enseguida)
+MC.alIniciar=splashOn;
 function splashOff(ya){var el=document.getElementById('splash-cuenta');if(!el||el.className.indexOf('out')>-1)return;el.className+=' out';
   setTimeout(function(){el.className+=' go';setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},450)},ya?0:Math.max(0,1000-(Date.now()-cuentaT0)))}
 // Al entrar con la pista ya terminada, repite la animación del final (letras, partes y resultado) mientras se va la pantalla de carga
@@ -63,7 +65,7 @@ function render(){
   S.hold=null;
   if(S.pz!=='cargando'){if(S.view==='archivo'&&!allAsked){allAsked=true;need(allDays())}else if(S.view==='hoy'&&!MC.clueOf(S.cur))need([S.cur])}
   renderNav();
-  var f={hoy:MC.vHoy,archivo:MC.vArchivo,aprender:MC.vAprender,estadisticas:MC.vStats,clasificacion:MC.vRank,grupos:MC.vGroups,enviar:MC.vSend,cuenta:MC.vAccount,admin:MC.vAdmin}[S.view]||MC.vHoy;
+  var f={hoy:MC.vHoy,archivo:MC.vArchivo,aprender:MC.vAprender,estadisticas:MC.vStats,clasificacion:MC.vRank,grupos:MC.vGroups,enviar:MC.vSend,cuenta:MC.vAccount,admin:MC.vAdmin,ia:MC.vIA}[S.view]||MC.vHoy;
   $('#main').innerHTML=f();
   if(S.view==='hoy'){var i=$('#guess');if(i){i.value=S.typed;if(window.matchMedia&&matchMedia('(pointer:fine)').matches)i.focus()}}
   if(S.view==='aprender'){var li=$('#lguess');if(li){li.value=S.ltyped;if(window.matchMedia&&matchMedia('(pointer:fine)').matches)li.focus()}}
@@ -73,11 +75,13 @@ function render(){
   if(S.view==='admin'&&MC.base.esAdmin()&&(!S.adm||!S.adm.st))MC.adminLoad();
   if(S.view!=='hoy'||MC.clueOf(S.cur)||S.pz!=='cargando')hideSplash();
 }
-function go(v,n){if(n==='today')n=today();var prev=S.cur;if(n)S.cur=n;if(v==='aprender')S.learn=null;S.view=v;
+// Al entrar a Hoy desde otra sección con la pista ya terminada, se repite la animación del final (como al recargar)
+function replayIfDone(){if(S.view==='hoy'&&MC.clueOf(S.cur)&&MC.prog(S.cur).done)S.fresh='end'}
+function go(v,n){if(n==='today')n=today();var prev=S.cur,prevView=S.view;if(n)S.cur=n;if(v==='aprender')S.learn=null;S.view=v;if(v==='hoy'&&(prevView!=='hoy'||S.cur!==prev))replayIfDone();
   if(n&&n!==prev){S.typed='';S.msg=''}
   S.confirm='';mark(v);render();window.scrollTo(0,0)}
 // Cada sección tiene su ruta: BASE es Hoy, BASE+'aprender' es Aprender, etc.
-function isView(v){return v==='admin'||VIEWS.some(function(x){return x[0]===v})}
+function isView(v){return v==='admin'||v==='ia'||VIEWS.some(function(x){return x[0]===v})}
 function urlOf(v){return location.protocol==='file:'?location.pathname:BASE+(v==='hoy'?'':v)}
 function viewOf(p){var lp=p.toLowerCase(),lb=BASE.toLowerCase(),s;
   if(lp.indexOf(lb)===0)s=lp.slice(lb.length);else if(lp+'/'===lb)s='';else return null;
@@ -99,7 +103,7 @@ document.addEventListener('click',function(e){var t=e.target.closest('[data-act]
   else if(a==='give-yes')MC.giveUp();
   else if(a==='bk'){S.bk=!S.bk;render()}
   else if(a==='vote')MC.vote(t.dataset.v);
-  else if(a==='login'){S.amsg='';t.disabled=true;splashOn();MC.base.entrar().catch(function(err){splashOff(true);S.amsg=MC.base.motivoSesion(err);render()})}
+  else if(a==='login'){S.amsg='';t.disabled=true;MC.base.entrar().catch(function(err){splashOff(true);S.amsg=MC.base.motivoSesion(err);render()})}
   else if(a==='logout'){MC.base.salir().then(function(){go('cuenta')},function(){go('cuenta')})} // al cerrar sesión: Cuenta, arriba de todo
   else if(a==='theme'){store.theme=t.dataset.v||'';save();applyTheme();render()}
   else if(a==='pub'){MC.base.publico(t.checked)}
@@ -127,6 +131,7 @@ document.addEventListener('click',function(e){var t=e.target.closest('[data-act]
   else if(a==='leave')MC.leaveGroup(t.dataset.c);
   else if(a==='atab'){S.atab=t.dataset.v;S.am=null;render()}
   else if(a==='nophoto'){MC.base.cambiarFoto('');render()}
+  else if(a==='upia'){t.disabled=true;S.am={id:'ad-out',t:'Subiendo pistas de IA…',cls:'ok'};render();MC.base.subirIA().then(function(r){S.am={id:'ad-out',t:'Listo: subí '+r.n+' pistas de IA. Se liberan de a 10 por día, hasta el '+MC.fmtLong(r.hasta)+'.',cls:'ok'};render()}).catch(function(err){S.am={id:'ad-out',t:err&&err.code==='no-ia'?'No encontré privado/ia.js. Generalas primero con npm run ia.':MC.base.motivoSesion(err),cls:'bad'};render()})}
   else if(a==='upclues'){t.disabled=true;S.am={id:'ad-out',t:'Subiendo pistas…',cls:'ok'};render();MC.base.subirPistas().then(function(n){S.am={id:'ad-out',t:'Listo: subí '+n+' pistas.',cls:'ok'};if(S.adm)S.adm.st='';render()}).catch(function(err){S.am={id:'ad-out',t:MC.base.motivoSesion(err),cls:'bad'};render()})}
   else if(a==='reset'){S.confirm='reset';render()}
   else if(a==='reset-yes'){store.hist={};store.prog={};store.subs=[];store.learn={};store.votes={};S.confirm='';S.typed='';save();MC.base.publicar(today());render()}
@@ -146,10 +151,10 @@ document.addEventListener('submit',function(e){e.preventDefault();var id=e.targe
   else if(id==='f-fb'){var k=$('#fb-kind').value,msg=($('#fb-msg').value||'').trim(),out=$('#fb-out');if(msg.length<5){if(out){out.textContent='Contanos un poco más: el mensaje es muy corto.';out.className='msg bad'}return}
     MC.base.enviarComentario(k,msg).then(function(){$('#fb-msg').value='';if($('#fb-out')){$('#fb-out').textContent='Gracias, lo leemos todo.';$('#fb-out').className='msg ok'}}).catch(function(err){if($('#fb-out')){$('#fb-out').textContent='No pude enviarlo: '+MC.base.motivo(err);$('#fb-out').className='msg bad'}})}
   else if(id==='f-login'){var le=$('#l-email').value,lp=$('#l-pass').value;if(!le||!lp)return say('a-out','Escribí tu email y tu contraseña.');
-    splashOn();MC.base.entrarConEmail(le,lp).catch(function(err){splashOff(true);say('a-out',MC.base.motivoSesion(err))})}
+    MC.base.entrarConEmail(le,lp).catch(function(err){splashOff(true);say('a-out',MC.base.motivoSesion(err))})}
   else if(id==='f-signup'){var un=$('#u-name').value,ue=$('#u-email').value,up=$('#u-pass').value;
     if(!MC.base.nombreValido(un))return say('a-out',MC.base.motivoSesion({code:'name-invalid'}));if(!ue)return say('a-out','Escribí tu email.');if(up.length<6)return say('a-out',MC.base.motivoSesion({code:'auth/weak-password'}));
-    say('a-out','Creando tu cuenta…','ok');splashOn();MC.base.crearCuenta(un,ue,up).then(function(){render();splashOff()}).catch(function(err){splashOff(true);var t=MC.base.motivoSesion(err);if(MC.base.lista()){S.am={id:'a-msg',t:t,cls:'bad'};render()}else say('a-out',t)})}
+    say('a-out','Creando tu cuenta…','ok');MC.base.crearCuenta(un,ue,up).then(function(){render();splashOff()}).catch(function(err){splashOff(true);var t=MC.base.motivoSesion(err);if(MC.base.lista()){S.am={id:'a-msg',t:t,cls:'bad'};render()}else say('a-out',t)})}
   else if(id==='f-forgot'){var fe=$('#f-email').value;if(!fe)return say('a-out','Escribí tu email.');
     var sent=function(){say('a-out','Listo: si hay una cuenta con ese email, te llega el enlace en unos minutos.','ok')};
     MC.base.recuperarClave(fe).then(sent).catch(function(err){if(err&&err.code==='auth/user-not-found')sent();else say('a-out',MC.base.motivoSesion(err))})}
@@ -167,7 +172,7 @@ document.addEventListener('change',function(e){if(e.target.id!=='a-photo'||!e.ta
 // Android y Chrome avisan cuando se puede instalar: se guarda el aviso para el botón de Cuenta
 addEventListener('beforeinstallprompt',function(e){e.preventDefault();MC.instalar=e;if(S.view==='cuenta'&&!editing())render()});
 addEventListener('appinstalled',function(){MC.instalar=null;if(S.view==='cuenta'&&!editing())render()});
-window.addEventListener('popstate',function(e){var st=e.state||{};S.view=isView(st.v)?st.v:(viewOf(location.pathname)||'hoy');var n=st.n||today();if(n!==S.cur){S.cur=n;S.typed='';S.msg=''}S.confirm='';render();window.scrollTo(0,0)});
+window.addEventListener('popstate',function(e){var st=e.state||{},prevView=S.view,prevCur=S.cur;S.view=isView(st.v)?st.v:(viewOf(location.pathname)||'hoy');var n=st.n||today();if(n!==S.cur){S.cur=n;S.typed='';S.msg=''}S.confirm='';if(S.view==='hoy'&&(prevView!=='hoy'||S.cur!==prevCur))replayIfDone();render();window.scrollTo(0,0)});
 
 window.addEventListener('storage',function(e){if(e.key==='mc_v1'&&!editing()){MC.load();applyTheme();render()}});
 function applyTheme(){var r=document.documentElement;if(store.theme)r.setAttribute('data-theme',store.theme);else r.removeAttribute('data-theme')}

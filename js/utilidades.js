@@ -31,7 +31,6 @@ MC.fmtDate=function(n){return new Intl.DateTimeFormat('es-AR',{weekday:'short',d
 MC.fmtLong=function(n){return new Intl.DateTimeFormat('es-AR',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date((EPOCH+n-1)*DAY)).replace(/\./g,'')};
 MC.countdown=function(){var next=(Math.floor((Date.now()-OFF)/DAY)+1)*DAY+OFF,d=Math.max(0,next-Date.now()),p=function(x){return String(x).padStart(2,'0')};return p(Math.floor(d/3600000))+':'+p(Math.floor(d%3600000/60000))+':'+p(Math.floor(d%60000/1000))};
 
-MC.plain=function(c){return c.t.map(function(p){return p[0]}).join(' ')};
 MC.hasRole=function(c,r){return c.t.some(function(p){return p[1]===r})};
 MC.letterOrder=function(len){var o=[0];if(len>1)o.push(len-1);for(var i=1;i<len-1;i++)o.push(i);return o};
 
