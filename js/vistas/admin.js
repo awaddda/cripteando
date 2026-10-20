@@ -30,7 +30,7 @@ function toClue(e){var t=MC.segmentos(e);
 
 function tokens(e){return MC.tokensHtml(e,'aword')}
 function checkInfo(e){var c=toClue(e),ans=norm(c.a);
-  if(!String(e.text||'').trim()||!ans)return {cls:'note',text:'Cuando completes el enunciado y la respuesta, verifico lo que se pueda de forma automática.'};
+  if(!String(e.text||'').trim()||!ans)return {cls:'note',text:'Cuando completes el enunciado y la respuesta, se verifica automáticamente lo que se pueda.'};
   var k=MECHS.filter(function(x){return x[1]===c.m})[0],v=MC.verificar(e.text,ans,k?[k[0]]:[]);
   if(!c.t.some(function(x){return x[1]==='def'}))v.lines.push('Falta marcar la definición.');
   return {cls:v.any?(v.bad?'note warn':'note ok'):'note',text:v.lines.join(' ')}}
@@ -71,7 +71,7 @@ function vAdmin(){var S=MC.S,ad=A();
   h+='<div class="row-wrap"><button class="btn pri" data-act="anew">Nueva pista</button><button class="btn" data-act="aexport"'+(ad.list.length?'':' disabled')+'>Descargar copia</button></div>';
   h+='<p class="msg '+(ad.cls||'')+'" id="adm-msg" role="status" style="text-align:left">'+esc(ad.msg||'')+'</p>';
   if(ad.st!=='listo'&&ad.st!=='error')return wrap(h+'<div class="empty" role="status"><b>Cargando las pistas…</b></div>');
-  if(ad.st==='error')return wrap(h+'<div class="note warn">No pude leer las pistas. Revisá que las reglas de Firestore estén publicadas y recargá la página.</div>'+importBox(S));
+  if(ad.st==='error')return wrap(h+'<div class="note warn">No se pudieron leer las pistas. Revisá que las reglas de Firestore estén publicadas y recargá la página.</div>'+importBox(S));
   var last=ad.list.length?ad.list[ad.list.length-1].n:0,ahead=last-T;
   h+=ahead>0?'<div class="note ok">Tenés pistas programadas hasta el '+fmtLong(last)+': '+ahead+(ahead===1?' día más.':' días más.')+'</div>':
     '<div class="note warn">'+(ad.list.length?'No hay pistas programadas después de hoy: mañana no sale ninguna.':'Todavía no hay pistas cargadas.')+'</div>';
@@ -86,7 +86,7 @@ function vAdmin(){var S=MC.S,ad=A();
   return wrap(h+importBox(S))}
 function wrap(h){return '<div class="account">'+h+'</div>'}
 function importBox(S){var m=S.am&&S.am.id==='ad-out'?S.am:null;
-  return '<section class="acc-sec"><h2>Importar desde tu compu</h2><p class="muted">Sube las pistas de privado/banco.js y reemplaza las que tengan el mismo número. Funciona solo si abrís la página desde tu compu.</p><div class="row-wrap"><button class="btn" data-act="upclues">Importar banco.js</button><button class="btn" data-act="upia">Importar pistas de IA</button></div><small class="muted">Las de IA salen de privado/ia.js y se liberan de a 10 por día desde hoy.</small>'+
+  return '<section class="acc-sec"><h2>Importar desde tu compu</h2><p class="muted">Sube las pistas de privado/banco.js y reemplaza las que tengan el mismo número. Funciona solo si abrís la página desde tu compu.</p><div class="row-wrap"><button class="btn" data-act="upclues">Importar banco.js</button></div>'+
     '<p class="msg '+(m?m.cls:'')+'" id="ad-out" role="status" style="text-align:left">'+(m?esc(m.t):'')+'</p></section>'}
 
 function load(){var S=MC.S,ad=A();if(!MC.base.esAdmin()||ad.st==='cargando')return;ad.st='cargando';
@@ -106,8 +106,8 @@ function input(target){var e=readForm();if(!e)return;
 function exportBank(){var ad=A(),arr=[],i;ad.list.forEach(function(x){arr[x.n-1]=x.c});for(i=0;i<arr.length;i++)if(!arr[i])arr[i]=null;
   try{var b=new Blob(['window.MC_BANCO='+JSON.stringify(arr,null,1)+';\n'],{type:'text/javascript'}),u=URL.createObjectURL(b),l=document.createElement('a');
     l.href=u;l.download='banco.js';document.body.appendChild(l);l.click();setTimeout(function(){URL.revokeObjectURL(u);l.remove()},1000);
-    ad.msg='Descargué banco.js. Guardalo en la carpeta privado o en Drive como copia.';ad.cls='ok'}
-  catch(e){ad.msg='No pude descargar la copia.';ad.cls='bad'}
+    ad.msg='Se descargó banco.js. Guardalo en la carpeta privado o en Drive como copia.';ad.cls='ok'}
+  catch(e){ad.msg='No se pudo descargar la copia.';ad.cls='bad'}
   MC.render()}
 
 function save(){var S=MC.S,ad=A(),e=readForm();if(!e)return;var c=toClue(e);
@@ -120,9 +120,9 @@ function save(){var S=MC.S,ad=A(),e=readForm();if(!e)return;var c=toClue(e);
   if(e.pk==='nombre'&&!String(e.por||'').trim())return say('Escribí el nombre del autor, o elegí que sea anónima.');
   say('Guardando…','ok');
   MC.base.guardarPista(e.n,c).then(function(){var x=find(e.n);if(x)x.c=c;else{ad.list.push({n:e.n,c:c});ad.list.sort(function(p,q){return p.n-q.n})}
-    var fin=function(){S.ae=null;ad.msg='Guardé la pista #'+e.n+'.';ad.cls='ok';MC.render();window.scrollTo(0,0)};
+    var fin=function(){S.ae=null;ad.msg='Pista #'+e.n+' guardada.';ad.cls='ok';MC.render();window.scrollTo(0,0)};
     if(e.sub)MC.base.marcarEnvio(e.sub,'aceptada').then(function(){ad.subs.forEach(function(s){if(s.id===e.sub)s.st='aceptada'})},function(){}).then(fin);else fin()})
-  .catch(function(err){say('No pude guardarla: '+MC.base.motivo(err))})}
+  .catch(function(err){say('No se pudo guardar: '+MC.base.motivo(err))})}
 
 function click(a,t){var S=MC.S,ad=A(),e;
   if(a==='anew')S.ae={n:nextN(),isNew:true,a:'',m:'',ik:'',text:'',roles:[],ex:'',pk:'',por:''};
@@ -133,12 +133,12 @@ function click(a,t){var S=MC.S,ad=A(),e;
   else if(a==='adel'){readForm();S.ae.del=true}
   else if(a==='adel-no'){readForm();S.ae.del=false}
   else if(a==='adel-yes'){var n=S.ae.n;t.disabled=true;
-    MC.base.borrarPista(n).then(function(){ad.list=ad.list.filter(function(x){return x.n!==n});S.ae=null;ad.msg='Borré la pista #'+n+'.';ad.cls='ok';MC.render()})
-      .catch(function(err){S.ae.del=false;S.ae.msg='No pude borrarla: '+MC.base.motivo(err);S.ae.cls='bad';MC.render()});return}
+    MC.base.borrarPista(n).then(function(){ad.list=ad.list.filter(function(x){return x.n!==n});S.ae=null;ad.msg='Pista #'+n+' borrada.';ad.cls='ok';MC.render()})
+      .catch(function(err){S.ae.del=false;S.ae.msg='No se pudo borrar: '+MC.base.motivo(err);S.ae.cls='bad';MC.render()});return}
   else if(a==='aexport'){exportBank();return}
   else if(a==='asub'){var s=ad.subs[+t.dataset.i];if(s)S.ae=fromSub(s)}
   else if(a==='ast'){var s2=ad.subs[+t.dataset.i],v=t.dataset.v;if(!s2)return;t.disabled=true;
-    MC.base.marcarEnvio(s2.id,v).then(function(){s2.st=v;MC.render()}).catch(function(err){ad.msg='No pude cambiar el estado: '+MC.base.motivo(err);ad.cls='bad';MC.render()});return}
+    MC.base.marcarEnvio(s2.id,v).then(function(){s2.st=v;MC.render()}).catch(function(err){ad.msg='No se pudo cambiar el estado: '+MC.base.motivo(err);ad.cls='bad';MC.render()});return}
   var keep=/^(aword|arole|adel|adel-no)$/.test(a),y=window.scrollY;MC.render();window.scrollTo(0,keep?y:0)}
 
 MC.vAdmin=vAdmin;

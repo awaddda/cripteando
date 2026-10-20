@@ -1,14 +1,15 @@
 (function(MC){
 'use strict';
-var $=MC.$, norm=MC.norm, clueOf=MC.clueOf, hasRole=MC.hasRole, store=MC.store, save=MC.save, prog=MC.prog, hintsOf=MC.hintsOf;
+var $=MC.$, norm=MC.norm, clueOf=MC.clueOf, store=MC.store, save=MC.save, prog=MC.prog, hintsOf=MC.hintsOf;
 
 function paintCells(typedIn){var S=MC.S,c=clueOf(S.cur),p=prog(S.cur),el=$('#cells');if(!el||!c)return;var inp=$('#guess');var h=MC.cellsHtml(c,p,S.typed,!!p.done,p.done==='w',-1,typedIn);
   Array.prototype.slice.call(el.children).forEach(function(ch){if(ch!==inp)el.removeChild(ch)});el.insertAdjacentHTML('afterbegin',h)}
 function setMsg(t,cls){var S=MC.S;S.msg=t;S.msgCls=cls||'';var m=$('#msg');if(m){m.textContent=t;m.className='msg '+(cls||'')}}
 function hint(k){var S=MC.S,n=S.cur,c=clueOf(n),p=prog(n);if(!c||p.done)return;
-  if(k==='def'&&!p.hd&&hasRole(c,'def'))p.hd=1;
-  else if(k==='ind'&&!p.hi&&hasRole(c,'ind'))p.hi=1;
-  else if(k==='mat'&&!p.hm&&hasRole(c,'mat'))p.hm=1;
+  // Las ayudas de partes se pueden pedir siempre: si la frase no tiene esa parte, la ayuda lo dice (y cuenta como usada)
+  if(k==='def'&&!p.hd)p.hd=1;
+  else if(k==='ind'&&!p.hi)p.hi=1;
+  else if(k==='mat'&&!p.hm)p.hm=1;
   else if(k==='let'&&p.hl<norm(c.a).length-1){p.hl++;S.typed=S.typed.slice(0,MC.freeOf(c,p).length)}
   else return;
   S.fresh=k;save();S.msg='';MC.render()}
@@ -46,8 +47,8 @@ function shareImg(btn){var n=MC.S.cur,p=prog(n),w=p.done==='w',h=hintsOf(p),c=cl
     return new Promise(function(r){cv.toBlob(r,'image/png')})})
   .then(function(blob){if(!blob)throw 0;var name='cripteando-'+n+'.png',file=null;try{file=new File([blob],name,{type:'image/png'})}catch(e){}
     if(file&&window.matchMedia&&matchMedia('(pointer:coarse)').matches&&navigator.canShare&&navigator.canShare({files:[file]}))return navigator.share({files:[file],title:'Cripteando #'+n}).catch(function(){});
-    var u=URL.createObjectURL(blob),l=document.createElement('a');l.href=u;l.download=name;document.body.appendChild(l);l.click();setTimeout(function(){URL.revokeObjectURL(u);l.remove()},1000);say('Listo, descargué la imagen.')})
-  .catch(function(){say('No pude armar la imagen en este navegador.')}).then(function(){btn.disabled=false})}
+    var u=URL.createObjectURL(blob),l=document.createElement('a');l.href=u;l.download=name;document.body.appendChild(l);l.click();setTimeout(function(){URL.revokeObjectURL(u);l.remove()},1000);say('Imagen descargada.')})
+  .catch(function(){say('Este navegador no permite armar la imagen.')}).then(function(){btn.disabled=false})}
 
 function copyText(t,cb){var done=function(ok){cb&&cb(ok)};
   var legacy=function(){try{var ta=document.createElement('textarea');ta.value=t;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.select();var ok=document.execCommand('copy');document.body.removeChild(ta);done(ok)}catch(e){done(false)}};

@@ -100,7 +100,7 @@ function vAprender(){var S=MC.S;return S.learn==='guia'?vGuia():(S.learn&&lesson
 function reset(){var S=MC.S;S.lph='def';S.lfound={};S.ltyped='';S.lmsg='';S.lcls='';S.lfr=null;S.lwin=false}
 function mark(id,j){var st=MC.store;if(!st.learn[id])st.learn[id]={};st.learn[id][j]=true;MC.save()}
 function curClue(){var S=MC.S,l=lessonOf(S.learn);return l&&l.clues?l.clues[S.lstep-1]:null}
-function learnOpen(id){var S=MC.S;S.learn=id;S.lstep=0;reset();MC.render();window.scrollTo(0,0)}
+function learnOpen(id){var S=MC.S;S.learn=id;S.lstep=0;reset();MC.marcar('aprender');MC.render();window.scrollTo(0,0)}
 function learnStep(d){var S=MC.S,l=lessonOf(S.learn);S.lstep=Math.max(0,Math.min(stepsOf(l)-1,S.lstep+d));reset();
   if(l.theory&&S.lstep===stepsOf(l)-1)mark(l.id,0);MC.render();window.scrollTo(0,0)}
 function learnTap(i){var S=MC.S,cl=curClue(),ph=S.lph;if(!cl||(ph!=='def'&&ph!=='ind')||S.lfound[i])return;var r=cl.t[i][1];
@@ -124,6 +124,7 @@ function learnLen(){var cl=curClue();return cl?norm(cl.a).length:0}
 
 MC.vAprender=vAprender;
 MC.learnOpen=learnOpen;
+MC.learnReset=reset;
 MC.learnStep=learnStep;
 MC.learnTap=learnTap;
 MC.learnCheck=learnCheck;

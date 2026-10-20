@@ -23,7 +23,7 @@ function chips(t,shown){var h='';['def','mat','ind'].forEach(function(r){if(show
 function bkSection(r,label,text){return '<div class="bk"><span class="rchip r-'+r+'">'+label+'</span><p>'+text+'</p></div>'}
 
 function desglose(t,ik,ex){var d=partsOf(t,'def'),i=partsOf(t,'ind'),m=partsOf(t,'mat'),h='';
-  h+=bkSection('ind','Indicador',!i.length?'Esta pista no tiene indicador: '+(d.length>1?'las dos partes son definiciones de la misma palabra.':'las piezas se pegan en orden.'):
+  h+=bkSection('ind','Indicador',!i.length?'Esta pista no tiene indicador: '+(d.length>1?'las dos partes son definiciones de la misma palabra.':(!m.length?'toda la frase es una definición con trampa.':'las piezas se pegan en orden.')):
     quote(i)+(i.length>1?' son nuestros indicadores':' es nuestro indicador')+(ik?(i.length>1?': piden ':': pide ')+esc(ik)+'.':'.'));
   h+=bkSection('mat','Relleno',!m.length?'Esta pista no tiene relleno: no hay ninguna palabra que modificar.':
     quote(m)+(m.length>1?' son nuestros rellenos. Encontramos la respuesta modificándolos':' es nuestro relleno. Encontramos la respuesta modificándolo')+(i.length?' como nos lo muestra el indicador.':': hay que buscarle un sustituto a cada pieza y pegarlos en orden.'));

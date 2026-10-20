@@ -16,7 +16,7 @@ var LBL=MC.RL;
 var THUMB='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3zm0 0 4-7a2 2 0 0 1 2 2v4h5.5a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 17.1 21H7"/></svg>';
 function vMissing(n){var S=MC.S,t=n===today();
   if(S.pz!=='error'&&S.pz!=='listo')return MC.loader();
-  var msg=S.pz==='error'?['No pude cargar la pista','Revisá tu conexión y recargá la página.']:(S.pz==='listo'?[t?'La pista de hoy todavía no está lista':'Esta pista no existe','Volvé en un rato.']:['Cargando la pista…','']);
+  var msg=S.pz==='error'?['No se pudo cargar la pista','Revisá tu conexión y recargá la página.']:(S.pz==='listo'?[t?'La pista de hoy todavía no está lista':'Esta pista no existe','Volvé en un rato.']:['Cargando la pista…','']);
   return '<div class="empty" role="status"><b>'+msg[0]+'</b>'+msg[1]+'</div>'+(t?'':'<p style="text-align:center;margin-top:16px"><button class="link" data-act="go" data-v="hoy" data-n="today">Ir a la pista de hoy</button></p>')}
 function vHoy(){var S=MC.S;
   if(!clueOf(S.cur))return vMissing(S.cur);
@@ -30,10 +30,12 @@ function vHoy(){var S=MC.S;
   var at=p.g.length+1;
   var tried=p.g.length?'<div class="tried" aria-label="Intentos anteriores">'+p.g.map(function(g){return '<span>'+esc(g)+'</span>'}).join('')+'</div>':'';
 
-  var hb=function(k,lbl,applies,used){var dis=done||!applies||used||(k==='let'&&p.hl>=len-1);
-    return '<button class="hint h-'+k+(used?' used':'')+'" data-act="hint" data-k="'+k+'"'+(dis?' disabled':'')+'><span class="dot" aria-hidden="true"></span>'+lbl+(used?'<small>usada</small>':(applies?'':'<small>no aplica</small>'))+'</button>'};
+  // Las ayudas no avisan de antemano qué partes tiene la frase: si se pide una que no está, se dice después
+  var hb=function(k,lbl,used){var dis=done||used||(k==='let'&&p.hl>=len-1);
+    return '<button class="hint h-'+k+(used?' used':'')+'" data-act="hint" data-k="'+k+'"'+(dis?' disabled':'')+'><span class="dot" aria-hidden="true"></span>'+lbl+(used?'<small>usada</small>':'')+'</button>'};
+  var none=[['def',p.hd,'definición'],['ind',p.hi,'indicador'],['mat',p.hm,'relleno']].filter(function(x){return x[1]&&!hasRole(c,x[0])}).map(function(x){return '<p class="hint-none'+(fresh===x[0]?' fresh':'')+'">Esta frase no tiene '+x[2]+'.</p>'}).join('');
   var isToday=n===today();
-  var top='<header class="hero"><h1>'+(isToday?'Pista críptica de hoy':'Pista críptica #'+n)+'</h1>'+(isToday?'':'<button class="link" data-act="go" data-v="hoy" data-n="today">Ir a la de hoy</button>')+'</header>';
+  var top='<header class="hero"><h1>'+(isToday?'Pista críptica de hoy':'Pista críptica #'+n)+'</h1>'+(isToday||S.arch?'':'<button class="link" data-act="go" data-v="hoy" data-n="today">Ir a la de hoy</button>')+'</header>';
   var html=top+'<article class="sheet"><p class="clue" id="clue">'+clueOf2(true)+'</p>'+MC.firma(c)+'</article>';
   html+='<div class="cells'+(done?(win?' good':' lost'):'')+(fresh==='end'?' flip':'')+'" id="cells" role="group" aria-label="Respuesta de '+len+' letras">'+cellsHtml(c,p,S.typed,done,win,pop)+
     (done?'':'<input id="guess" class="guess-input" type="text" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="'+(len+4)+'" aria-label="Escribí tu respuesta de '+len+' letras">')+'</div>';
@@ -42,13 +44,13 @@ function vHoy(){var S=MC.S;
     html+='<div class="msg '+S.msgCls+'" id="msg" role="status" aria-live="polite">'+esc(S.msg)+'</div>';
     html+='<div class="actions">'+(S.confirm==='give'?'<span class="give-q">¿Ver la respuesta? La pista queda como no resuelta.</span><button class="btn danger" data-act="give-yes">Sí, me rindo</button><button class="btn" data-act="noleave">Seguir jugando</button>':
       '<button class="btn pri" data-act="check">Comprobar</button><button class="btn ghost-btn" data-act="give">Me rindo</button>')+'</div>';
-    html+='<h2 class="hints-title">Ayudas</h2><div class="hints">'+hb('def','Definición',hasRole(c,'def'),p.hd)+hb('ind','Indicador',hasRole(c,'ind'),p.hi)+hb('mat','Relleno',hasRole(c,'mat'),p.hm)+hb('let','Una letra',true,false)+'</div>';
+    html+='<h2 class="hints-title">Ayudas</h2><div class="hints">'+hb('def','Definición',p.hd)+hb('ind','Indicador',p.hi)+hb('mat','Relleno',p.hm)+hb('let','Una letra',false)+'</div>'+none;
     html+='<p class="hint-note">Usar ayudas está permitido, y buscar sinónimos en un diccionario también vale.'+(p.hi&&c.ik?' <b>Indicador:</b> pide '+esc(c.ik)+'.':'')+'</p>';
   } else {
     var h=hintsOf(p),vote=MC.store.votes[n]||'';
     html+='<section class="result'+(fresh==='end'?' fresh" style="--d:'+(len*110+500)+'ms':'')+'" aria-live="polite"><h2>'+(win?(at===1?'¡Resuelta al primer intento!':'¡Resuelta en '+at+' intentos!'):'Esta vez no salió')+'</h2>'+
       '<div class="kv"><span>Mecanismo <b>'+esc(c.m)+'</b></span><span>Intentos <b>'+(win?at:p.g.length)+'</b></span><span>Ayudas <b>'+h+'</b></span></div>'+
-      '<div class="row-wrap"><button class="btn pri" data-act="shareimg">Compartir</button><button class="btn" data-act="go" data-v="archivo">Ver el archivo</button></div>'+
+      '<div class="row-wrap"><button class="btn pri" data-act="shareimg">Compartir</button><button class="btn" data-act="go" data-v="archivo">'+(S.arch?'Volver al archivo':'Ver el archivo')+'</button></div>'+
       '<p class="msg ok" id="smsg" role="status"></p>'+
 
       '<div class="vote" role="group" aria-label="¿Te gustó la pista?"><span>¿Te gustó la pista?</span>'+
@@ -61,7 +63,6 @@ function vHoy(){var S=MC.S;
   }
   html+='<div class="meta"><span class="chip">Pista #'+n+'</span><span class="chip">'+MC.mateIco(streak()?'w':'n')+'Racha <b>'+streak()+'</b></span><span class="chip">'+fmtLong(n)+'</span></div>';
   html+='<p class="next">Nueva pista en <span class="cd" id="cd">'+countdown()+'</span> (00:00 hora de Argentina)</p>';
-  html+='<p class="next"><button class="link" data-act="go" data-v="ia">Probá las pistas de IA</button> <span class="tag">Experimental</span></p>';
   return html}
 
 MC.cellsHtml=cellsHtml;

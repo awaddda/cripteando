@@ -27,7 +27,11 @@ MC.dayOf=function(ms){return Math.floor((ms-OFF)/DAY)-EPOCH+1};
 MC.today=function(){return Math.max(1,MC.dayOf(Date.now()))};
 
 MC.clueOf=function(n){return PZ[Math.max(1,Math.floor(n)||1)]||null};
+// Medianoche UTC del día n (para armar calendarios con esa fecha)
+MC.diaMs=function(n){return (EPOCH+n-1)*DAY};
 MC.fmtDate=function(n){return new Intl.DateTimeFormat('es-AR',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'}).format(new Date((EPOCH+n-1)*DAY))};
+// Fecha entera: «Domingo 15 de noviembre»
+MC.fmtFull=function(n){var s=new Intl.DateTimeFormat('es-AR',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'}).format(new Date((EPOCH+n-1)*DAY)).replace(',','');return s.charAt(0).toUpperCase()+s.slice(1)};
 MC.fmtLong=function(n){return new Intl.DateTimeFormat('es-AR',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date((EPOCH+n-1)*DAY)).replace(/\./g,'')};
 MC.countdown=function(){var next=(Math.floor((Date.now()-OFF)/DAY)+1)*DAY+OFF,d=Math.max(0,next-Date.now()),p=function(x){return String(x).padStart(2,'0')};return p(Math.floor(d/3600000))+':'+p(Math.floor(d%3600000/60000))+':'+p(Math.floor(d%60000/1000))};
 

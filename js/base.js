@@ -57,7 +57,7 @@ function login(){if(!B.auth)return Promise.reject({code:'no-config'});var p=new 
     if(c==='auth/popup-blocked'||c==='auth/operation-not-supported-in-this-environment'||c==='auth/cancelled-popup-request')return B.auth.signInWithRedirect(p);
     throw e})}
 function wipeLocal(){store.hist={};store.prog={};store.learn={};store.votes={};store.subs=[];store.groups=[];store.draft={};store.uname='';store.photo='';store.pub=true;store.showName=true;
-  store.owner='';store.alias='Jugador'+(100+Math.floor(Math.random()*900));for(var k in B.unsub){try{B.unsub[k]()}catch(e){}}B.unsub={};B.groups={};B.gmem={};MC.save()}
+  store.owner='';store.rst=0;store.alias='Jugador'+(100+Math.floor(Math.random()*900));for(var k in B.unsub){try{B.unsub[k]()}catch(e){}}B.unsub={};B.groups={};B.gmem={};MC.save()}
 function logout(){clearTimeout(upT);var go=B.uid?upload():Promise.resolve();return go.then(function(){return B.auth?B.auth.signOut():null}).then(wipeLocal)}
 var loginReason=function(e){var c=e&&e.code||'';try{console.warn('Cripteando, sesión:',c||e,e&&e.message||'')}catch(x){}
   if(c==='auth/popup-closed-by-user')return 'Cerraste la ventana antes de terminar. Probá de nuevo.';
@@ -70,15 +70,15 @@ var loginReason=function(e){var c=e&&e.code||'';try{console.warn('Cripteando, se
   if(c==='auth/too-many-requests')return 'Hubo demasiados intentos. Esperá un rato y probá de nuevo.';
   if(c==='name-taken')return 'Ese nombre de usuario ya está en uso. Probá con otro.';
   if(c==='name-taken-after')return 'Tu cuenta se creó, pero alguien tomó ese nombre de usuario justo antes. Elegí otro acá abajo, en Perfil.';
-  if(c==='name-after')return 'Tu cuenta se creó, pero no pude guardar tu nombre de usuario. Escribilo de nuevo acá abajo, en Perfil.';
+  if(c==='name-after')return 'Tu cuenta se creó, pero no se pudo guardar tu nombre de usuario. Escribilo de nuevo acá abajo, en Perfil.';
   if(c==='auth/operation-not-allowed'||c==='auth/admin-restricted-operation')return 'Las cuentas con email y contraseña no están activadas todavía.';
-  if(c==='no-bank')return 'No encontré privado/banco.js. Abrí la página desde tu compu, con localhost.';
+  if(c==='no-bank')return 'No se encontró privado/banco.js. Abrí la página desde tu compu, con localhost.';
   if(c==='permission-denied')return 'La base de datos no deja guardar esto. Revisá que las reglas de Firestore estén publicadas.';
   if(c==='auth/configuration-not-found')return 'El inicio de sesión no está activado en Firebase. Entrá a Authentication y tocá Comenzar.';
   if(c==='failed-precondition'||c==='not-found')return 'Todavía no está creada la base de datos de Firestore.';
   if(/api-key/.test(c))return 'La clave de Firebase no es válida. Revisá js/config.js.';
   if(c==='name-invalid')return 'El nombre de usuario tiene que tener de 3 a 20 letras, números, puntos o guiones bajos, sin espacios.';
-  return 'No pude iniciar sesión. Probá de nuevo en un rato.'};
+  return 'No se pudo iniciar sesión. Probá de nuevo en un rato.'};
 var nameKey=function(n){return String(n||'').trim().toLowerCase()};
 var nameOk=function(n){return /^[a-z0-9_.]{3,20}$/.test(nameKey(n))};
 function nameFree(n){if(!nameOk(n))return Promise.reject({code:'name-invalid'});var k=nameKey(n);
@@ -103,12 +103,17 @@ function resetPass(email){if(!B.auth)return Promise.reject({code:'no-config'});r
 function setPhoto(dataUrl){store.photo=dataUrl||'';MC.save();return publish(today())}
 
 var SYNC=['hist','prog','learn','votes','subs'],upT=null,syncing=false;
-function cloudDoc(){return {hist:store.hist,prog:store.prog,learn:store.learn,votes:store.votes,subs:store.subs.slice(-50),alias:store.alias,uname:store.uname||'',photo:store.photo||'',pub:!!store.pub,showName:!!store.showName,theme:store.theme||'',u:Date.now()}}
+function cloudDoc(){return {hist:store.hist,prog:store.prog,learn:store.learn,votes:store.votes,subs:store.subs.filter(function(s){return s.sent}).slice(-50),alias:store.alias,uname:store.uname||'',photo:store.photo||'',pub:!!store.pub,showName:!!store.showName,theme:store.theme||'',rst:store.rst||0,u:Date.now()}}
 // Partidas: si los datos locales son de esta misma cuenta (jugó con sesión y no llegó a subirse), se queda con el mejor resultado.
 // Si se jugaron sin sesión o con otra cuenta, en las pistas que la cuenta ya empezó o terminó gana la cuenta (lo local se descarta);
 // las que la cuenta nunca tocó se suman. Así no se puede rehacer una pista sin sesión para mejorar intentos o ayudas.
 var touched=function(p){return !!(p&&typeof p==='object'&&((Array.isArray(p.g)&&p.g.length)||p.hd||p.hi||p.hm||p.hl||p.done))};
-function mergeCloud(r){if(!r||typeof r!=='object')return;var rh=r.hist||{},rp=r.prog||{},k,mine=!!store.owner&&store.owner===B.uid;
+// rst: cuándo se borró el progreso de la cuenta por última vez (solo cuenta si lo local es de esta misma cuenta).
+// Si la cuenta lo borró después que este dispositivo, lo local se descarta; si fue este dispositivo y todavía no se subió, lo viejo de la nube no vuelve.
+function mergeCloud(r){if(!r||typeof r!=='object')return;var rh=r.hist||{},rp=r.prog||{},k,mine=!!store.owner&&store.owner===B.uid,rr=typeof r.rst==='number'?r.rst:0;
+  if(!mine)store.rst=rr;
+  else if(rr>(store.rst||0)){store.hist={};store.prog={};store.learn={};store.votes={};store.rst=rr}
+  else if((store.rst||0)>rr){rh={};rp={};r.learn={};r.votes={}}
   if(mine){
     for(k in rh){var l=store.hist[k],x=rh[k];if(!x||typeof x!=='object')continue;
       if(!l||(x.r==='w'&&l.r!=='w')||(x.r===l.r&&(x.a|0)<(l.a|0))){store.hist[k]=x;if(rp[k])store.prog[k]=rp[k]}}
@@ -124,7 +129,8 @@ function mergeCloud(r){if(!r||typeof r!=='object')return;var rh=r.hist||{},rp=r.
   else if(typeof r.alias==='string'&&r.alias&&/^Jugador\d{3}$/.test(store.alias))store.alias=r.alias.slice(0,24);
   if(typeof r.photo==='string'&&/^data:image\/jpeg;base64,/.test(r.photo)&&!store.photo)store.photo=r.photo;
   if(typeof r.pub==='boolean')store.pub=r.pub;if(typeof r.showName==='boolean')store.showName=r.showName;
-  if(['','light','dark'].indexOf(r.theme)>-1)store.theme=r.theme}
+  if(['','light','dark'].indexOf(r.theme)>-1)store.theme=r.theme;
+  MC.limpiar()}
 function upload(){if(!B.db||!B.uid)return Promise.resolve();return withRetry(function(){return B.db.doc('saves/'+B.uid).set(cloudDoc())}).catch(function(){})}
 function scheduleUpload(){if(syncing||!B.db||!B.uid)return;clearTimeout(upT);upT=setTimeout(upload,1500)}
 function syncIn(){if(!B.db||!B.uid)return Promise.resolve();syncing=true;
@@ -165,17 +171,6 @@ function fetchClues(ns){var need=MC.faltan(ns);if(!need.length)return Promise.re
     .then(function(s){var m={};s.docs.forEach(function(d){var x=d.data();if(x&&typeof x.c==='string'&&typeof x.n==='number')m[x.n]=x.c});return MC.guardarPistas(m)},function(e){try{console.warn('Cripteando, pistas:',e&&e.code||e,e&&e.message||'')}catch(x){}throw e})}
 function refreshToday(){if(!B.db)return Promise.resolve(false);var T=today();
   return withRetry(function(){return B.db.doc('pistas/'+T).get()}).then(function(s){if(!s.exists)return false;var x=s.data(),m={};if(x&&typeof x.c==='string'){m[T]=x.c;return MC.guardarPistas(m)}return false},function(){return false})}
-// Pistas de IA (modo experimental): cada una tiene su día de liberación (d); las reglas solo dejan leer las ya liberadas
-function iaList(){if(!B.db)return Promise.reject({code:'unavailable'});var T=today();
-  return withRetry(function(){return B.db.collection('ia').where('d','<=',T).get()}).then(function(s){var out=[];
-    s.docs.forEach(function(d){var x=d.data()||{},c=typeof x.c==='string'?MC.decodificar(x.c):null;if(c&&typeof x.n==='number'){c.n=x.n;c.dif=x.dif;out.push(c)}});return out})}
-function uploadIA(){if(!isAdmin())return Promise.reject({code:'permission-denied'});
-  return loadScript('privado/ia.js?t='+Date.now()).then(function(){if(!Array.isArray(window.MC_IA)||!window.MC_IA.length)throw {code:'no-ia'};return window.MC_IA},function(){throw {code:'no-ia'}})
-    .then(function(list){var T=today(),i=0,n=0;
-      var next=function(){if(i>=list.length)return Promise.resolve();var k=++i,c=list[k-1];if(!MC.pistaValida(c)||['facil','media','dificil'].indexOf(c.dif)<0)return next();
-        var d=T+Math.floor((k-1)/10),dif=c.dif,cc={a:c.a,m:c.m,ik:c.ik||'',t:c.t,ex:c.ex||''};
-        return withRetry(function(){return B.db.doc('ia/'+k).set({n:k,d:d,dif:dif,c:MC.codificar(cc)})}).then(function(){n++;return next()})};
-      return next().then(function(){return {n:n,hasta:T+Math.floor((list.length-1)/10)}})})}
 function quickToday(){var cfg=window.MC_FIREBASE,T=today();if(!cfg||!cfg.projectId||!window.fetch||MC.clueOf(T))return Promise.resolve(false);
   return fetch('https://firestore.googleapis.com/v1/projects/'+encodeURIComponent(cfg.projectId)+'/databases/(default)/documents/pistas/'+T+'?key='+encodeURIComponent(cfg.apiKey||''))
     .then(function(r){return r.ok?r.json():null}).then(function(j){var c=j&&j.fields&&j.fields.c&&j.fields.c.stringValue,m={};if(!c)return false;m[T]=c;MC.guardarPistas(m);return !!MC.clueOf(T)})
@@ -210,7 +205,7 @@ function countVotes(){return adminOnly()||withRetry(function(){return B.db.colle
   s.docs.forEach(function(d){var x=d.data()||{},n=x.n;if(typeof n!=='number'||(x.v!=='up'&&x.v!=='down'))return;if(!m[n])m[n]={up:0,down:0};m[n][x.v]++});return m})}
 function markSub(id,st){return adminOnly()||withRetry(function(){return B.db.doc('submissions/'+id).update({st:st})})}
 
-function sendClue(d){return withRetry(function(){return B.db.collection('submissions').add({u:B.uid,al:d.pub?store.alias:'',pub:!!d.pub,text:d.text,answer:d.answer,mechs:d.mechs.join(','),seg:JSON.stringify(d.seg),exp:d.exp,hd:d.hd||'',hi:d.hi||'',hm:d.hm||'',extra:JSON.stringify(d.extra||[]),notes:d.notes||'',t:d.t,st:'pendiente'})})}
+function sendClue(d){if(!B.uid)return Promise.reject({code:'permission-denied'});return withRetry(function(){return B.db.collection('submissions').add({u:B.uid,al:d.pub?store.alias:'',pub:!!d.pub,text:d.text,answer:d.answer,mechs:d.mechs.join(','),seg:JSON.stringify(d.seg),exp:d.exp,hd:d.hd||'',hi:d.hi||'',hm:d.hm||'',extra:JSON.stringify(d.extra||[]),notes:d.notes||'',t:d.t,st:'pendiente'})})}
 
 MC.base={
   conectar:connect,
@@ -248,8 +243,6 @@ MC.base={
   pistas:fetchClues,
   pistaDeHoy:refreshToday,
   pistaRapida:quickToday,
-  pistasIA:iaList,
-  subirIA:uploadIA,
   revisarPistas:checkEdits,
   esAdmin:isAdmin,
   subirPistas:uploadClues,

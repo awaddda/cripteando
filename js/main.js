@@ -4,7 +4,7 @@ var $=MC.$, norm=MC.norm, today=MC.today, clueOf=MC.clueOf, store=MC.store, save
 
 // Carpeta base de la página: en la compu el script está en js/main.js; publicado, todo va en un solo archivo en la raíz
 var BASE=(function(){try{var s=document.currentScript.src;return new URL(/\/js\/main\.js(\?|$)/.test(s)?'../':'./',s).pathname}catch(e){return '/'}})();
-var S={view:'hoy',cur:today(),typed:'',msg:'',msgCls:'',fresh:'',bk:false,
+var S={view:'hoy',cur:today(),arch:0,typed:'',msg:'',msgCls:'',fresh:'',bk:false,
   learn:null,lstep:0,lph:'def',lfound:{},ltyped:'',lmsg:'',lcls:'',lfr:null,lwin:false,
 lb:'racha',amsg:'',gsel:null,gmsg:'',gcls:'',confirm:'',smsg:'',scls:'',pz:''};
 MC.S=S;
@@ -55,39 +55,51 @@ MC.alIniciar=splashOn;
 function splashOff(ya){var el=document.getElementById('splash-cuenta');if(!el||el.className.indexOf('out')>-1)return;el.className+=' out';
   setTimeout(function(){el.className+=' go';setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},450)},ya?0:Math.max(0,1000-(Date.now()-cuentaT0)))}
 // Al entrar con la pista ya terminada, repite la animación del final (letras, partes y resultado) mientras se va la pantalla de carga
-function replayEnd(){if(S.view!=='hoy'||editing()||!MC.clueOf(S.cur)||!MC.prog(S.cur).done)return;S.fresh='end';render()}
+function replayEnd(){if(!jugando()||editing()||!MC.clueOf(S.cur)||!MC.prog(S.cur).done)return;S.fresh='end';render()}
 setTimeout(hideSplash,8000);
 // Mientras corre la animación del final (S.hold), los redibujos de fondo (Firebase, carga de pistas) esperan a que termine;
 // si no, reemplazan las letras y el resultado a mitad de camino. Cualquier clic o tecla la libera.
 var held=null;
 function render(){
-  if(S.hold&&S.view==='hoy'&&S.hold.n===S.cur&&S.fresh!=='end'&&Date.now()<S.hold.t){renderNav();if(!held)held=setTimeout(function(){held=null;render()},S.hold.t-Date.now()+20);return}
+  if(S.hold&&jugando()&&S.hold.n===S.cur&&S.fresh!=='end'&&Date.now()<S.hold.t){renderNav();if(!held)held=setTimeout(function(){held=null;render()},S.hold.t-Date.now()+20);return}
   S.hold=null;
-  if(S.pz!=='cargando'){if(S.view==='archivo'&&!allAsked){allAsked=true;need(allDays())}else if(S.view==='hoy'&&!MC.clueOf(S.cur))need([S.cur])}
+  if(S.pz!=='cargando'){if(S.view==='archivo'&&!allAsked){allAsked=true;need(allDays())}else if(jugando()&&!MC.clueOf(S.cur))need([S.cur])}
   renderNav();
-  var f={hoy:MC.vHoy,archivo:MC.vArchivo,aprender:MC.vAprender,estadisticas:MC.vStats,clasificacion:MC.vRank,grupos:MC.vGroups,enviar:MC.vSend,cuenta:MC.vAccount,admin:MC.vAdmin,ia:MC.vIA}[S.view]||MC.vHoy;
+  var f={hoy:MC.vHoy,archivo:MC.vArchivo,aprender:MC.vAprender,estadisticas:MC.vStats,clasificacion:MC.vRank,grupos:MC.vGroups,enviar:MC.vSend,cuenta:MC.vAccount,admin:MC.vAdmin}[S.view]||MC.vHoy;
   $('#main').innerHTML=f();
-  if(S.view==='hoy'){var i=$('#guess');if(i){i.value=S.typed;if(window.matchMedia&&matchMedia('(pointer:fine)').matches)i.focus()}}
+  if(S.enter){S.enter=false;entrada()}
+  if(jugando()){var i=$('#guess');if(i){i.value=S.typed;if(window.matchMedia&&matchMedia('(pointer:fine)').matches)i.focus()}}
   if(S.view==='aprender'){var li=$('#lguess');if(li){li.value=S.ltyped;if(window.matchMedia&&matchMedia('(pointer:fine)').matches)li.focus()}}
   if(S.view==='clasificacion'||S.view==='grupos')MC.base.escuchar();
   if(S.view==='grupos')MC.liveGroups();
   if(S.view==='enviar')MC.checkSend();
   if(S.view==='admin'&&MC.base.esAdmin()&&(!S.adm||!S.adm.st))MC.adminLoad();
-  if(S.view!=='hoy'||MC.clueOf(S.cur)||S.pz!=='cargando')hideSplash();
+  if(!jugando()||MC.clueOf(S.cur)||S.pz!=='cargando')hideSplash();
 }
-// Al entrar a Hoy desde otra sección con la pista ya terminada, se repite la animación del final (como al recargar)
-function replayIfDone(){if(S.view==='hoy'&&MC.clueOf(S.cur)&&MC.prog(S.cur).done)S.fresh='end'}
-function go(v,n){if(n==='today')n=today();var prev=S.cur,prevView=S.view;if(n)S.cur=n;if(v==='aprender')S.learn=null;S.view=v;if(v==='hoy'&&(prevView!=='hoy'||S.cur!==prev))replayIfDone();
+// Al cambiar de sección, los bloques aparecen de arriba a abajo con un fundido (solo al navegar, no en cada redibujo)
+function entrada(){var l=$('#main').children,i;
+  while(l.length===1&&l[0].children.length>1)l=l[0].children;
+  for(i=0;i<l.length;i++){l[i].classList.add('fx-in');l[i].style.animationDelay=Math.min(i,10)*55+'ms'}}
+// Se está jugando una pista: la de Hoy, o una abierta desde el Archivo (S.arch), que se juega sin salir de esa sección
+function jugando(){return S.view==='hoy'||(S.view==='archivo'&&!!S.arch)}
+function go(v,n){if(n==='today'||(v==='hoy'&&!n))n=today();var prev=S.cur;if(n)S.cur=n;if(v==='aprender')S.learn=null;S.view=v;S.arch=0;S.enter=true;
   if(n&&n!==prev){S.typed='';S.msg=''}
   S.confirm='';mark(v);render();window.scrollTo(0,0)}
-// Cada sección tiene su ruta: BASE es Hoy, BASE+'aprender' es Aprender, etc.
-function isView(v){return v==='admin'||v==='ia'||VIEWS.some(function(x){return x[0]===v})}
-function urlOf(v){return location.protocol==='file:'?location.pathname:BASE+(v==='hoy'?'':v)}
+// Tocar en el menú la sección en la que ya estás no la recarga: solo sube arriba de todo.
+// Dentro de una pista del Archivo o de una lección, sí lleva a la página principal de la sección.
+function yaEsta(v){return v===S.view&&!S.arch&&!(v==='aprender'&&S.learn)&&(v!=='hoy'||S.cur===today())}
+function abrir(n){if(n===today())return go('hoy','today');if(n!==S.cur){S.typed='';S.msg=''}S.cur=n;S.arch=n;S.view='archivo';S.confirm='';S.enter=true;mark('archivo');render();window.scrollTo(0,0)}
+// Cada sección tiene su ruta: BASE es Hoy, BASE+'aprender' es Aprender, BASE+'archivo?pista=12' es la pista 12 abierta desde el Archivo, etc.
+function isView(v){return v==='admin'||VIEWS.some(function(x){return x[0]===v})}
+function urlOf(v){return location.protocol==='file:'?location.pathname:BASE+(v==='hoy'?'':v)+(v==='archivo'&&S.arch?'?pista='+S.arch:'')+(v==='aprender'&&S.learn?'?leccion='+encodeURIComponent(S.learn):'')}
 function viewOf(p){var lp=p.toLowerCase(),lb=BASE.toLowerCase(),s;
   if(lp.indexOf(lb)===0)s=lp.slice(lb.length);else if(lp+'/'===lb)s='';else return null;
   s=decodeURIComponent(s).replace(/^index\.html$/,'').replace(/\/+$/,'');
   return !s?'hoy':(isView(s)?s:null)}
-function mark(v){try{var st=history.state;if(!(st&&st.v===v&&st.n===S.cur))history.pushState({v:v,n:S.cur},'',urlOf(v))}catch(e){}}
+function lessonOf(q){var m=/[?&]leccion=([a-z]+)/.exec(q||''),id=m?m[1]:null;return id&&(id==='guia'||MC.LESSONS.some(function(l){return l.id===id}))?id:null}
+function archOf(q){var m=/[?&]pista=(\d+)/.exec(q||''),n=m?+m[1]:0;return n>=1&&n<=today()?n:0}
+function mark(v){try{var st=history.state,a=v==='archivo'?S.arch||0:0,l=v==='aprender'?S.learn||null:null;if(!(st&&st.v===v&&st.n===S.cur&&(st.a||0)===a&&(st.l||null)===l))history.pushState({v:v,n:S.cur,a:a,l:l},'',urlOf(v))}catch(e){}}
+MC.marcar=mark;
 
 function refreshLive(){if(S.view==='clasificacion')$('#main').innerHTML=MC.vRank();else if(S.view==='grupos')MC.liveGroups()}
 MC.render=render;
@@ -95,8 +107,8 @@ MC.go=go;
 
 ['click','keydown','input'].forEach(function(ev){document.addEventListener(ev,function(){S.hold=null},true)});
 document.addEventListener('click',function(e){var t=e.target.closest('[data-act]');if(!t)return;var a=t.dataset.act;
-  if(a==='go')go(t.dataset.v,t.dataset.n);
-  else if(a==='open'){S.cur=+t.dataset.n;S.typed='';S.msg='';go('hoy',S.cur)}
+  if(a==='go'){if(t.classList.contains('tab')&&yaEsta(t.dataset.v)){window.scrollTo({top:0,behavior:'smooth'});return}go(t.dataset.v,t.dataset.n)}
+  else if(a==='open')abrir(+t.dataset.n);
   else if(a==='hint')MC.hint(t.dataset.k);
   else if(a==='check')MC.check();
   else if(a==='give'){S.confirm='give';render()}
@@ -109,13 +121,13 @@ document.addEventListener('click',function(e){var t=e.target.closest('[data-act]
   else if(a==='pub'){MC.base.publico(t.checked)}
   else if(a==='showname'){store.showName=t.checked;save()}
   else if(a==='delacc'){S.confirm='delacc';S.dmsg='';render()}
-  else if(a==='delacc-yes'){t.disabled=true;MC.base.eliminarCuenta().then(function(){S.confirm='';S.dmsg='';render()}).catch(function(err){S.dmsg='No pude eliminar la cuenta: '+MC.base.motivo(err);render()})}
+  else if(a==='delacc-yes'){t.disabled=true;MC.base.eliminarCuenta().then(function(){S.confirm='';S.dmsg='';render()}).catch(function(err){S.dmsg='No se pudo eliminar la cuenta: '+MC.base.motivo(err);render()})}
   else if(a==='lguia-go'){S.view='aprender';S.learn='guia';mark('aprender');render();window.scrollTo(0,0)}
   else if(/^(stab|smech|srole|sword|sextra|sxdel)$/.test(a))MC.clickSend(a,t);
   else if(/^(anew|aedit|aback|arole|aword|adel|adel-no|adel-yes|aexport|asub|ast)$/.test(a))MC.adminClick(a,t);
   else if(a==='lopen')MC.learnOpen(t.dataset.l);
-  else if(a==='lhub'){S.learn=null;render();window.scrollTo(0,0)}
-  else if(a==='lguia'){S.learn='guia';render();window.scrollTo(0,0)}
+  else if(a==='lhub'){S.learn=null;mark('aprender');render();window.scrollTo(0,0)}
+  else if(a==='lguia'){S.learn='guia';mark('aprender');render();window.scrollTo(0,0)}
   else if(a==='lnext')MC.learnStep(1);
   else if(a==='lprev')MC.learnStep(-1);
   else if(a==='lseg')MC.learnTap(+t.dataset.i);
@@ -131,10 +143,9 @@ document.addEventListener('click',function(e){var t=e.target.closest('[data-act]
   else if(a==='leave')MC.leaveGroup(t.dataset.c);
   else if(a==='atab'){S.atab=t.dataset.v;S.am=null;render()}
   else if(a==='nophoto'){MC.base.cambiarFoto('');render()}
-  else if(a==='upia'){t.disabled=true;S.am={id:'ad-out',t:'Subiendo pistas de IA…',cls:'ok'};render();MC.base.subirIA().then(function(r){S.am={id:'ad-out',t:'Listo: subí '+r.n+' pistas de IA. Se liberan de a 10 por día, hasta el '+MC.fmtLong(r.hasta)+'.',cls:'ok'};render()}).catch(function(err){S.am={id:'ad-out',t:err&&err.code==='no-ia'?'No encontré privado/ia.js. Generalas primero con npm run ia.':MC.base.motivoSesion(err),cls:'bad'};render()})}
-  else if(a==='upclues'){t.disabled=true;S.am={id:'ad-out',t:'Subiendo pistas…',cls:'ok'};render();MC.base.subirPistas().then(function(n){S.am={id:'ad-out',t:'Listo: subí '+n+' pistas.',cls:'ok'};if(S.adm)S.adm.st='';render()}).catch(function(err){S.am={id:'ad-out',t:MC.base.motivoSesion(err),cls:'bad'};render()})}
+  else if(a==='upclues'){t.disabled=true;S.am={id:'ad-out',t:'Subiendo pistas…',cls:'ok'};render();MC.base.subirPistas().then(function(n){S.am={id:'ad-out',t:n+' pistas subidas.',cls:'ok'};if(S.adm)S.adm.st='';render()}).catch(function(err){S.am={id:'ad-out',t:MC.base.motivoSesion(err),cls:'bad'};render()})}
   else if(a==='reset'){S.confirm='reset';render()}
-  else if(a==='reset-yes'){store.hist={};store.prog={};store.subs=[];store.learn={};store.votes={};S.confirm='';S.typed='';save();MC.base.publicar(today());render()}
+  else if(a==='reset-yes'){store.hist={};store.prog={};store.subs=[];store.learn={};store.votes={};store.rst=Date.now();S.confirm='';S.typed='';save();MC.base.publicar(today());render()}
 });
 document.addEventListener('input',function(e){
   if(e.target.id==='a-alias'){var sv=$('#a-save');if(sv)sv.disabled=!e.target.value.trim()||e.target.value.trim().slice(0,20)===store.alias;return}
@@ -149,7 +160,7 @@ document.addEventListener('submit',function(e){e.preventDefault();var id=e.targe
   if(id==='f-adm')MC.adminSave();
   else if(id==='f-create')MC.createGroup();else if(id==='f-join')MC.joinGroup();else if(id==='f-send')MC.sendClue();
   else if(id==='f-fb'){var k=$('#fb-kind').value,msg=($('#fb-msg').value||'').trim(),out=$('#fb-out');if(msg.length<5){if(out){out.textContent='Contanos un poco más: el mensaje es muy corto.';out.className='msg bad'}return}
-    MC.base.enviarComentario(k,msg).then(function(){$('#fb-msg').value='';if($('#fb-out')){$('#fb-out').textContent='Gracias, lo leemos todo.';$('#fb-out').className='msg ok'}}).catch(function(err){if($('#fb-out')){$('#fb-out').textContent='No pude enviarlo: '+MC.base.motivo(err);$('#fb-out').className='msg bad'}})}
+    MC.base.enviarComentario(k,msg).then(function(){$('#fb-msg').value='';if($('#fb-out')){$('#fb-out').textContent='Gracias, lo leemos todo.';$('#fb-out').className='msg ok'}}).catch(function(err){if($('#fb-out')){$('#fb-out').textContent='No se pudo enviar: '+MC.base.motivo(err);$('#fb-out').className='msg bad'}})}
   else if(id==='f-login'){var le=$('#l-email').value,lp=$('#l-pass').value;if(!le||!lp)return say('a-out','Escribí tu email y tu contraseña.');
     MC.base.entrarConEmail(le,lp).catch(function(err){splashOff(true);say('a-out',MC.base.motivoSesion(err))})}
   else if(id==='f-signup'){var un=$('#u-name').value,ue=$('#u-email').value,up=$('#u-pass').value;
@@ -165,14 +176,14 @@ document.addEventListener('submit',function(e){e.preventDefault();var id=e.targe
 function say(id,t,cls){var m=$('#'+id);if(m){m.textContent=t;m.className='msg '+(cls||'bad')}}
 document.addEventListener('change',function(e){if(e.target.id!=='a-photo'||!e.target.files||!e.target.files[0])return;
   say('p-out','Subiendo foto…','ok');MC.readPhoto(e.target.files[0]).then(function(d){return MC.base.cambiarFoto(d)}).then(function(){render()})
-  .catch(function(err){say('p-out',err&&err.code==='photo-type'?'Elegí un archivo de imagen.':(err&&err.code==='photo-size'?'La imagen es muy pesada: elegí una de menos de 15 MB.':'No pude usar esa imagen. Probá con otra.'))})});
+  .catch(function(err){say('p-out',err&&err.code==='photo-type'?'Elegí un archivo de imagen.':(err&&err.code==='photo-size'?'La imagen es muy pesada: elegí una de menos de 15 MB.':'Esa imagen no se puede usar. Probá con otra.'))})});
 // App instalable: el service worker solo en la página publicada (en la compu guardaría versiones viejas mientras se edita)
 (function(){var h=location.hostname;if('serviceWorker' in navigator&&location.protocol==='https:'&&h!=='localhost'&&h!=='127.0.0.1')
   addEventListener('load',function(){navigator.serviceWorker.register(BASE+'sw.js').catch(function(){})})})();
 // Android y Chrome avisan cuando se puede instalar: se guarda el aviso para el botón de Cuenta
 addEventListener('beforeinstallprompt',function(e){e.preventDefault();MC.instalar=e;if(S.view==='cuenta'&&!editing())render()});
 addEventListener('appinstalled',function(){MC.instalar=null;if(S.view==='cuenta'&&!editing())render()});
-window.addEventListener('popstate',function(e){var st=e.state||{},prevView=S.view,prevCur=S.cur;S.view=isView(st.v)?st.v:(viewOf(location.pathname)||'hoy');var n=st.n||today();if(n!==S.cur){S.cur=n;S.typed='';S.msg=''}S.confirm='';if(S.view==='hoy'&&(prevView!=='hoy'||S.cur!==prevCur))replayIfDone();render();window.scrollTo(0,0)});
+window.addEventListener('popstate',function(e){var st=e.state||{};S.view=isView(st.v)?st.v:(viewOf(location.pathname)||'hoy');S.arch=S.view==='archivo'?(e.state?st.a||0:archOf(location.search)):0;var l=S.view==='aprender'?(e.state?st.l||null:lessonOf(location.search)):null;if(l!==S.learn){S.learn=l;S.lstep=0;MC.learnReset()}var n=S.arch||(S.view==='hoy'?today():st.n||today());if(n!==S.cur){S.cur=n;S.typed='';S.msg=''}S.confirm='';S.enter=true;render();window.scrollTo(0,0)});
 
 window.addEventListener('storage',function(e){if(e.key==='mc_v1'&&!editing()){MC.load();applyTheme();render()}});
 function applyTheme(){var r=document.documentElement;if(store.theme)r.setAttribute('data-theme',store.theme);else r.removeAttribute('data-theme')}
@@ -182,7 +193,7 @@ function editing(){var a=document.activeElement;return !!(a&&a.closest&&a.closes
 var lastDay=today();
 setInterval(function(){var n=today();
   if(n!==lastDay){var was=lastDay;lastDay=n;MC.base.nuevoDia();allAsked=false;asked={};if(S.pz!=='cargando')S.pz='';
-    if(S.cur===was){S.cur=n;S.typed='';S.msg=''}
+    if(S.cur===was&&!S.arch){S.cur=n;S.typed='';S.msg=''}
     if(!editing())render();return}
   if(document.hidden)return;
   var el=$('#cd');if(el)el.textContent=MC.countdown()},1000);
@@ -190,13 +201,15 @@ setInterval(function(){var n=today();
 MC.load();applyTheme();
 // 404.html manda las rutas que GitHub Pages no conoce como ?r=aprender
 (function(){var r=null;try{r=new URLSearchParams(location.search).get('r')}catch(e){}
-  S.view=viewOf(r!==null?BASE+r:location.pathname)||'hoy';
-  try{history.replaceState({v:S.view,n:S.cur},'',urlOf(S.view)+location.hash)}catch(e){}})();
+  var p=r!==null?BASE+r:location.pathname+location.search,q=p.indexOf('?')>-1?p.slice(p.indexOf('?')):'';S.view=viewOf(p.split('?')[0])||'hoy';
+  if(S.view==='archivo'&&archOf(q)){if(archOf(q)===today())S.view='hoy';else S.arch=S.cur=archOf(q)}
+  if(S.view==='aprender')S.learn=lessonOf(q);
+  try{history.replaceState({v:S.view,n:S.cur,a:S.arch||0,l:S.learn||null},'',urlOf(S.view)+location.hash)}catch(e){}})();
 if(!MC.clueOf(S.cur))S.pz='cargando';
 render();
 // Primera visita: la pista de hoy por el camino corto, sin esperar a que se descargue y arranque Firebase
 if(!MC.clueOf(S.cur))MC.base.pistaRapida().then(function(ok){if(ok&&S.pz==='cargando'){S.pz='listo';if(!editing())render()}});
-MC.base.conectar(refreshLive,function(){S.amsg='';S.am=null;S.adm=null;S.ae=null;applyTheme();if(editing()&&S.view!=='cuenta')refreshLive();else render();splashOff()}).then(function(){
+MC.base.conectar(refreshLive,function(){S.amsg='';S.am=null;S.atab='';S.adm=null;S.ae=null;applyTheme();if(editing()&&S.view!=='cuenta')refreshLive();else render();splashOff()}).then(function(){
   var mine=Object.keys(store.hist).map(Number).concat([today()]);
   var go2=function(){if(!editing())render();else refreshLive()};
   if(!MC.base.conectada()){S.pz=MC.clueOf(S.cur)?'listo':'error';go2();return}
